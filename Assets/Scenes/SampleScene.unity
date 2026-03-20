@@ -7476,13 +7476,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1420841403}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.5791131, w: 0.81524724}
-  m_LocalPosition: {x: 0.188, y: 0.656, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -0.01772375, w: -0.999843}
+  m_LocalPosition: {x: -0.47098827, y: -0.26199663, z: 0}
   m_LocalScale: {x: 2.1961498, y: 0.3878337, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1555174125}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 70.776}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 362.031}
 --- !u!212 &1420841405
 SpriteRenderer:
   serializedVersion: 2
@@ -8648,10 +8648,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92c0d95ba4f3ddb42ad2cec336c377d8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  moveSpeed: 5
+  jumpKey: 32
+  interactKey: 101
+  normalDashKey: 304
+  targetDashKey: 102
+  crouchKey: 306
+  attackKey: 323
+  blockKey: 324
+  walkSpeed: 6
+  runSpeed: 10
+  crouchSpeed: 3
   acceleration: 10
   deceleration: 10
-  jumpForce: 7.5
+  jumpForce: 8.5
   jumpCutMultiplier: 0.5
   fallGravityMultiplier: 1.5
   coyoteTime: 0.15
@@ -8662,20 +8671,34 @@ MonoBehaviour:
   dashRange: 10
   dashSpeed: 15
   dashCooldown: 1.5
+  maxGuardGauge: 100
+  currentGuardGauge: 0
+  blockDamageReduction: 0.5
+  guardRegenRate: 15
+  guardDepleteRateBlocking: 8
+  guardDepleteOnHit: 25
+  stunDuration: 2
+  groundCheck: {fileID: 591354405}
+  groundCheckRadius: 0.2
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 256
+  blockColor: {r: 0, g: 0, b: 1, a: 1}
+  armorBreakColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  stunColor: {r: 0, g: 1, b: 1, a: 1}
   maxHealth: 5
   currentHealth: 0
   attackDamage: 1
   attackRange: 1.5
+  attackSpeedMultiplier: 0.7
+  baseAttackSwingDuration: 0.5
+  attackCooldownBuffer: 0.2
   swordAnchor: {fileID: 1555174125}
+  swordVisual: {fileID: 0}
   enemyLayer:
     serializedVersion: 2
     m_Bits: 128
   obstacleLayer:
-    serializedVersion: 2
-    m_Bits: 256
-  groundCheck: {fileID: 591354405}
-  groundCheckRadius: 0.2
-  groundLayer:
     serializedVersion: 2
     m_Bits: 256
 --- !u!212 &1603378211
