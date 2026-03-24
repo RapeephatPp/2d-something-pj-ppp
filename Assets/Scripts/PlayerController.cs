@@ -74,6 +74,7 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody2D rb;
     private float defaultGravity;
+    private Coroutine currentHitStop;
 
     // --- NEW: GREATSWORD COMBAT SYSTEM ---
     [Header("Greatsword Attack Settings (Procedural Animation)")]
@@ -88,6 +89,15 @@ public class PlayerController : MonoBehaviour
     public float baseAttackSwingDuration = 0.5f; 
     public float attackCooldownBuffer = 0.2f; 
     private float nextNormalAttackTime = 0f;  
+    
+    [Header("Combo Settings")]
+    public int currentCombo = 0; 
+    public float comboResetWindow = 1.5f; // 🟢 ปรับเป็น 1.5 วิ ให้ผู้เล่นมีเวลาพักหายใจ/ดูจังหวะก่อนกดฮิตต่อไป
+    private float lastAttackTime = 0f;
+
+    // 🟢 [เพิ่ม 2 ตัวแปรนี้] สำหรับระบบจำการกดปุ่มล่วงหน้า
+    public float attackInputBufferTime = 0.4f; // จะจำปุ่มที่กดล่วงหน้าไว้ 0.4 วินาที
+    private float lastAttackInputTime = -10f;
 
     public Transform swordAnchor; 
     public Transform swordVisual; 
@@ -159,7 +169,10 @@ public class PlayerController : MonoBehaviour
 
         if (moveInputX != 0)
         {
-            transform.localScale = new Vector3(Mathf.Sign(moveInputX), 1, 1);
+            // 🟢 แก้ใหม่: ดึงสเกลเดิม (Abs) มาใช้ แล้วเปลี่ยนแค่การหันซ้าย-ขวา (Sign) 
+            // ทำให้สเกลแกน Y และ Z ของเดิมไม่ถูกรบกวน
+            float facingDirection = Mathf.Sign(moveInputX);
+            transform.localScale = new Vector3(facingDirection * Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
         }
     }
 
@@ -264,14 +277,38 @@ public class PlayerController : MonoBehaviour
     {
         if (isBlocking) return;
 
-        float calculatedSwingDuration = baseAttackSwingDuration / attackSpeedMultiplier;
-
-        if (Input.GetKeyDown(attackKey) && Time.time >= nextNormalAttackTime)
+        // 1. รับค่าการกดปุ่มตลอดเวลา (แม้อยู่ระหว่างแอนิเมชันโจมตี)
+        if (Input.GetKeyDown(attackKey))
         {
-            nextNormalAttackTime = Time.time + calculatedSwingDuration + attackCooldownBuffer;
-            StartCoroutine(GreatswordAttackRoutine(calculatedSwingDuration));
+            lastAttackInputTime = Time.time;
         }
 
+        // 2. เช็คการหลุดคอมโบ (ถอยกลับไปเริ่มใหม่ถ้าหยุดตีนานเกินไป)
+        if (Time.time - lastAttackTime > comboResetWindow && currentCombo != 0)
+        {
+            currentCombo = 0;
+        }
+
+        float calculatedSwingDuration = baseAttackSwingDuration / attackSpeedMultiplier;
+
+        // 3. ปล่อยคอมโบ: เช็คว่า "มีการกดปุ่มรอไว้ในช่วง Buffer ไหม" AND "ถึงเวลาที่พร้อมตีหรือยัง"
+        if (Time.time - lastAttackInputTime <= attackInputBufferTime && Time.time >= nextNormalAttackTime)
+        {
+            // ล้างค่าปุ่มทิ้งทันทีที่เริ่มตี จะได้ไม่ตีเบิ้ลรัวๆ
+            lastAttackInputTime = -10f; 
+
+            nextNormalAttackTime = Time.time + calculatedSwingDuration + attackCooldownBuffer;
+            lastAttackTime = Time.time;
+
+            // สั่งเล่นคอมโบ
+            StartCoroutine(GreatswordComboRoutine(calculatedSwingDuration, currentCombo));
+
+            // บวกคอมโบ
+            currentCombo++;
+            if (currentCombo > 2) currentCombo = 0;
+        }
+
+        // (Dash ของเดิม ไม่ได้เปลี่ยน)
         if (Input.GetKeyDown(targetDashKey) && Time.time >= nextDashTime)
         {
             Transform target = FindNearestEnemy();
@@ -345,7 +382,7 @@ public class PlayerController : MonoBehaviour
                 break;
             case JuiceType.ArmorBreak:
                 StartCoroutine(FlashColorRoutine(armorBreakColor, originalColor));
-                StartCoroutine(HitStop(0.15f)); 
+                TriggerHitStop(0.15f);
                 if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.3f, 0.25f)); 
                 break;
             case JuiceType.Stun:
@@ -362,11 +399,23 @@ public class PlayerController : MonoBehaviour
         if (spriteRenderer != null) spriteRenderer.color = defaultColor;
     }
 
-    private IEnumerator HitStop(float duration)
+    
+    private void TriggerHitStop(float duration)
+    {
+        // ถ้ากำลังหน่วงเวลาอยู่ ให้ยกเลิกอันเก่าทิ้งก่อน (ป้องกันการทับซ้อน)
+        if (currentHitStop != null) 
+        {
+            StopCoroutine(currentHitStop);
+        }
+        currentHitStop = StartCoroutine(HitStopRoutine(duration));
+    }
+
+    private IEnumerator HitStopRoutine(float duration)
     {
         Time.timeScale = 0f;
         yield return new WaitForSecondsRealtime(duration);
         Time.timeScale = 1f;
+        currentHitStop = null; // คืนค่าให้ว่างเมื่อทำเสร็จ
     }
 
     private void HandleInteractInput()
@@ -401,81 +450,67 @@ public class PlayerController : MonoBehaviour
         return closest;
     }
 
-    private IEnumerator GreatswordAttackRoutine(float totalDuration)
+    private IEnumerator GreatswordComboRoutine(float totalDuration, int comboStep)
     {
         float originalWalkSpeed = walkSpeed;
         walkSpeed = walkSpeed * 0.2f; 
         rb.linearVelocity = new Vector2(rb.linearVelocity.x * 0.5f, rb.linearVelocity.y);
 
-        float windUpPercent = 0.6f; 
+        float windUpPercent = 0.5f; 
         float strikePercent = 0.15f; 
 
-        Quaternion startRot = Quaternion.Euler(0, 0, 90f); 
-        Quaternion midRot = Quaternion.Euler(0, 0, 110f); 
-        Quaternion strikeRot = Quaternion.Euler(0, 0, -130f); 
-        Quaternion endRot = Quaternion.Euler(0, 0, -90f); 
+        int currentDamage = attackDamage;
+        float currentHitStop = 0.12f;
+        float currentCamShake = 0.3f;
 
-        Vector3 originalVisualScale = swordVisual != null ? swordVisual.localScale : Vector3.one;
-        Vector3 squashScale = new Vector3(originalVisualScale.x * 1.3f, originalVisualScale.y * 0.7f, 1f); 
-        Vector3 stretchScale = new Vector3(originalVisualScale.x * 0.8f, originalVisualScale.y * 1.5f, 1f); 
-
-        float elapsed = 0f;
-
-        while (elapsed < totalDuration * windUpPercent)
+        // กำหนดตั้งค่าดาเมจตามจังหวะคอมโบ
+        if (comboStep == 1) 
         {
-            float t = elapsed / (totalDuration * windUpPercent);
-            if (swordAnchor != null) swordAnchor.localRotation = Quaternion.Lerp(startRot, midRot, t);
-            if (swordVisual != null) swordVisual.localScale = Vector3.Lerp(originalVisualScale, squashScale, t);
-            elapsed += Time.deltaTime;
-            yield return null;
+            totalDuration *= 0.8f; // ฮิตที่ 2 ตีเร็วขึ้นนิดนึง
+        }
+        else if (comboStep == 2)
+        {
+            currentDamage = attackDamage + 2; 
+            currentHitStop = 0.25f; 
+            currentCamShake = 0.5f; 
+            windUpPercent = 0.6f; 
         }
 
-        if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.2f, 0.1f)); 
+        // 1. จังหวะง้างดาบ (Wind Up)
+        // 💡 อนาคต: คุณสามารถสั่ง animator.SetTrigger("Attack" + comboStep) ตรงนี้ได้เลย
+        yield return new WaitForSeconds(totalDuration * windUpPercent);
+
+        if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.1f, 0.05f)); 
         
-        elapsed = 0f;
         bool hitEnemyInSwing = false;
 
-        while (elapsed < totalDuration * strikePercent)
+        // 2. จังหวะฟาด (Strike) & ตรวจจับการชน
+        if (swordAnchor != null)
         {
-            float t = elapsed / (totalDuration * strikePercent);
-            if (swordAnchor != null) swordAnchor.localRotation = Quaternion.Lerp(midRot, strikeRot, t);
-            if (swordVisual != null) swordVisual.localScale = Vector3.Lerp(originalVisualScale, stretchScale, t);
-
-            if (swordAnchor != null)
+            Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(swordAnchor.position, attackRange, enemyLayer);
+            foreach (Collider2D enemy in hitEnemies)
             {
-                Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(swordAnchor.position, attackRange, enemyLayer);
-                foreach (Collider2D enemy in hitEnemies)
+                EnemyBehavior enemyScript = enemy.GetComponent<EnemyBehavior>();
+                if (enemyScript != null) 
                 {
-                    EnemyBehavior enemyScript = enemy.GetComponent<EnemyBehavior>();
-                    if (enemyScript != null)
-                    {
-                        enemyScript.TakeDamage(attackDamage);
-                        hitEnemyInSwing = true;
-                    }
+                    enemyScript.TakeDamage(currentDamage); 
+                    hitEnemyInSwing = true;
                 }
             }
-            elapsed += Time.deltaTime;
-            yield return null;
         }
+        
+        yield return new WaitForSeconds(totalDuration * strikePercent);
 
-        if (hitEnemyInSwing)
+        // 3. จังหวะโดนศัตรู (HitStop) หรือฟาดพื้น (Combo 3 สั่นแม้ไม่โดนศัตรู)
+        if (hitEnemyInSwing || comboStep == 2)
         {
-            StartCoroutine(HitStop(0.12f)); 
-            if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.3f, 0.25f)); 
+            TriggerHitStop(currentHitStop); 
+            if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.3f, currentCamShake)); 
         }
 
-        elapsed = 0f;
-        while (elapsed < totalDuration * (1f - windUpPercent - strikePercent))
-        {
-            float t = elapsed / (totalDuration * (1f - windUpPercent - strikePercent));
-            if (swordAnchor != null) swordAnchor.localRotation = Quaternion.Lerp(strikeRot, endRot, t);
-            if (swordVisual != null) swordVisual.localScale = Vector3.Lerp(originalVisualScale, originalVisualScale, t); 
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
+        // 4. จังหวะดึงดาบกลับ (Recovery)
+        yield return new WaitForSeconds(totalDuration * (1f - windUpPercent - strikePercent));
 
-        if (swordAnchor != null) swordAnchor.localRotation = endRot;
-        if (swordVisual != null) swordVisual.localScale = originalVisualScale;
         walkSpeed = originalWalkSpeed;
     }
 
@@ -483,24 +518,28 @@ public class PlayerController : MonoBehaviour
     {
         isTargetDashing = true;
         Vector2 startPos = transform.position;
-        
-        if (swordAnchor != null) swordAnchor.localRotation = Quaternion.Euler(0, 0, -45); 
+        Vector2 dirToTarget = (target.position - transform.position).normalized;
+        Vector2 targetPos = (Vector2)target.position - (dirToTarget * 1.0f); // ปรับเลข 1.0f ได้ถ้ารู้สึกว่าหยุดไกลไป
 
-        float dist = Vector2.Distance(startPos, target.position);
+        float dist = Vector2.Distance(startPos, targetPos);
         float duration = dist / dashSpeed;
         float time = 0;
 
         float originalGravity = rb.gravityScale;
         rb.gravityScale = 0; 
-        rb.linearVelocity = Vector2.zero;
+        rb.linearVelocity = Vector2.zero; // เคลียร์แรงเก่าออกก่อนพุ่ง
 
         while (time < duration)
         {
             if (target == null) break; 
 
-            transform.position = Vector2.Lerp(startPos, target.position, time / duration);
-            time += Time.deltaTime;
-            yield return null;
+            // ใหม่: ใช้ rb.MovePosition แทน transform.position เพื่อให้มันเคารพระบบชน (Collision)
+            Vector2 newPos = Vector2.Lerp(startPos, targetPos, time / duration);
+            rb.MovePosition(newPos);
+        
+            // ใหม่: ใช้ fixedDeltaTime และรอ WaitForFixedUpdate() เพื่อให้ Sync กับระบบฟิสิกส์ของ Unity
+            time += Time.fixedDeltaTime;
+            yield return new WaitForFixedUpdate();
         }
 
         if (target != null)
@@ -510,14 +549,13 @@ public class PlayerController : MonoBehaviour
             {
                 enemyScript.TakeDamage(attackDamage);
                 canDoubleJump = true; 
-                StartCoroutine(HitStop(0.15f)); 
+                TriggerHitStop(0.15f); // ใช้ระบบ HitStop ตัวใหม่ที่เราเพิ่งแก้ไป!
             }
         }
-        
+    
         if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.25f, 0.2f)); 
 
         rb.gravityScale = originalGravity; 
-        if (swordAnchor != null) swordAnchor.localRotation = Quaternion.identity;
         isTargetDashing = false;
     }
 
@@ -527,14 +565,14 @@ public class PlayerController : MonoBehaviour
         isTargetDashing = false;
         if (rb != null) rb.gravityScale = defaultGravity; 
 
-        StartCoroutine(HitStop(0.1f));
+        TriggerHitStop(0.1f);
         if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.3f, 0.2f));
 
         if (isBlocking)
         {
             if (spriteRenderer != null) StartCoroutine(FlashColorRoutine(blockColor, originalColor));
             if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.15f, 0.08f)); 
-            StartCoroutine(HitStop(0.04f)); 
+            TriggerHitStop(0.04f); 
 
             currentGuardGauge -= guardDepleteOnHit;
             
