@@ -5,7 +5,11 @@ public class EscapeStartZone : MonoBehaviour
     [Header("Escape References")]
     public GameTimer gameTimer;
     public RisingLava lava;
-    public GameObject gateToBlockBehind; // Wall that closes so player can't go back
+    public GameObject gateToBlockBehind; 
+
+    // 🟢 [เพิ่มใหม่] อาเรย์สำหรับใส่ศัตรูที่คุณอยากให้มันตื่นตอนเหยียบเส้นนี้
+    [Header("Enemies To Trigger")]
+    public EnemyBehavior[] chaserEnemies; 
 
     private bool hasTriggered = false;
 
@@ -15,15 +19,23 @@ public class EscapeStartZone : MonoBehaviour
         {
             hasTriggered = true;
 
-            // Trigger all escape mechanics
+            // เริ่มระบบหนีตายทั้งหมด
             if (gameTimer != null) gameTimer.StartTimer();
             if (lava != null) lava.StartRising();
             if (CameraShake.Instance != null) CameraShake.Instance.StartSway();
             
-            // Block the path behind the player
             if (gateToBlockBehind != null) gateToBlockBehind.SetActive(true);
 
-            Debug.Log("Escape Sequence Started!");
+            // 🟢 [เพิ่มใหม่] สั่งให้ศัตรูทุกตัวในลิสต์เริ่มวิ่ง!
+            if (chaserEnemies != null)
+            {
+                foreach (EnemyBehavior enemy in chaserEnemies)
+                {
+                    if (enemy != null) enemy.TriggerChase();
+                }
+            }
+
+            Debug.Log("Escape Sequence Started! RUN!");
         }
     }
 }

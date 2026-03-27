@@ -6,8 +6,8 @@ public class EnemyBehavior : MonoBehaviour
     public EnemyType type;
 
     [Header("Settings")]
-    public int health = 3; // เลือดของมอนสเตอร์
-    public int damage = 1; // ดาเมจที่ตีผู้เล่น
+    public int health = 3; 
+    public int damage = 1; 
     public float speed = 2f;
     
     [Header("Patrol Settings (For Melee)")]
@@ -17,6 +17,10 @@ public class EnemyBehavior : MonoBehaviour
 
     [Header("Chaser Settings (For Big Monster)")]
     public Vector3 rushDirection = Vector3.right; 
+    
+    // 🟢 [เพิ่มใหม่] การตั้งค่าระบบรอคำสั่ง
+    public bool waitToChase = false; // ติ๊กถูกถ้ายากให้มันยืนรอจนกว่าผู้เล่นจะเหยียบ Trigger
+    private bool isChasing = false;  // สถานะการวิ่งปัจจุบัน
 
     void Start()
     {
@@ -24,13 +28,18 @@ public class EnemyBehavior : MonoBehaviour
         {
             targetPoint = pointB.position;
         }
+
+        // 🟢 ถ้าไม่ได้ตั้งให้รอ ก็สั่งให้มันวิ่งตั้งแต่เริ่มเกมเลย
+        if (!waitToChase)
+        {
+            isChasing = true;
+        }
     }
 
     void Update()
     {
         if (type == EnemyType.MeleePatrol)
         {
-            // โค้ดเดินไปมา (เหมือนเดิม)
             transform.position = Vector3.MoveTowards(transform.position, targetPoint, speed * Time.deltaTime);
             if (Vector3.Distance(transform.position, targetPoint) < 0.1f)
             {
@@ -42,26 +51,27 @@ public class EnemyBehavior : MonoBehaviour
         }
         else if (type == EnemyType.BigChaser)
         {
-            // [แก้ใหม่] ให้วิ่งไปหาจุด B แล้วหยุด
-            if (pointB != null)
+            // 🟢 [อัปเดต] เช็คก่อนว่าได้รับอนุญาตให้วิ่ง (isChasing) หรือยัง
+            if (isChasing) 
             {
-                transform.position = Vector3.MoveTowards(transform.position, pointB.position, speed * Time.deltaTime);
-                
-                // ถ้าอยากให้มันทำอะไรตอนพุ่งชนกำแพง/จุดหมาย (เช่น กล้องสั่น) ใส่เพิ่มตรงนี้ได้
-                if (Vector3.Distance(transform.position, pointB.position) < 0.1f)
+                if (pointB != null)
                 {
-                    // ถึงจุด B แล้ว จะหยุดนิ่งๆ
+                    transform.position = Vector3.MoveTowards(transform.position, pointB.position, speed * Time.deltaTime);
                 }
-            }
-            else 
-            {
-                // ถ้าลืมใส่จุด B ใน Inspector มันจะพุ่งไปข้างหน้าเรื่อยๆ เหมือนเดิม
-                transform.position += rushDirection * speed * Time.deltaTime;
+                else 
+                {
+                    transform.position += rushDirection * speed * Time.deltaTime;
+                }
             }
         }
     }
 
-    // --- ฟังก์ชันรับดาเมจจากผู้เล่น ---
+    // 🟢 [เพิ่มใหม่] ฟังก์ชันสำหรับให้ Trigger ภายนอกส่งคำสั่งมาปลุก
+    public void TriggerChase()
+    {
+        isChasing = true;
+    }
+
     public void TakeDamage(int damageAmount)
     {
         health -= damageAmount;
@@ -76,14 +86,18 @@ public class EnemyBehavior : MonoBehaviour
     void Die()
     {
         Debug.Log(gameObject.name + " Dead!");
-        Destroy(gameObject); // ทำลายศัตรูทิ้ง
+        Destroy(gameObject); 
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag("Player"))
         {
-            collision.gameObject.GetComponent<PlayerController>().TakeDamage(damage);
+            PlayerController player = collision.gameObject.GetComponent<PlayerController>();
+            if (player != null)
+            {
+                player.TakeDamage(damage);
+            }
         }
     }
 }
