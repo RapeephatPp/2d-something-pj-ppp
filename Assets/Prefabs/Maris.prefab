@@ -148,7 +148,7 @@ Transform:
   m_GameObject: {fileID: 5054224023479068802}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.068, y: -0.223, z: 0}
+  m_LocalPosition: {x: -0.068, y: -0.2414, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -270,8 +270,8 @@ MonoBehaviour:
   crouchKey: 306
   attackKey: 323
   blockKey: 324
+  isArmed: 0
   walkSpeed: 6
-  runSpeed: 10
   crouchSpeed: 3
   acceleration: 10
   deceleration: 10
@@ -303,6 +303,7 @@ MonoBehaviour:
   stunColor: {r: 0, g: 1, b: 1, a: 1}
   animator: {fileID: 0}
   comboResetTime: 1.2
+  attackInputBufferTime: 0.4
   maxHealth: 5
   currentHealth: 0
   attackDamage: 1
@@ -354,7 +355,7 @@ BoxCollider2D:
   m_Offset: {x: -0.06026285, y: -0.061040513}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.84615386, y: 0.69696975}
+    pivot: {x: 0.84615386, y: 0.6666667}
     oldSize: {x: 0.13, y: 0.33}
     newSize: {x: 1, y: 1}
     adaptiveTilingThreshold: 0.5

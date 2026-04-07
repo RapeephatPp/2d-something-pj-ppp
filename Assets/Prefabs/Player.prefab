@@ -36,6 +36,7 @@ Transform:
   m_Children:
   - {fileID: 5463150524205889742}
   - {fileID: 2767018760953523096}
+  - {fileID: 927736473217224745}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &5384372581592594586
@@ -116,8 +117,8 @@ MonoBehaviour:
   crouchKey: 306
   attackKey: 323
   blockKey: 324
+  isArmed: 1
   walkSpeed: 6
-  runSpeed: 10
   crouchSpeed: 3
   acceleration: 10
   deceleration: 10
@@ -149,13 +150,12 @@ MonoBehaviour:
   stunColor: {r: 0, g: 1, b: 1, a: 1}
   animator: {fileID: 0}
   comboResetTime: 1.2
+  attackInputBufferTime: 0.4
   maxHealth: 5
   currentHealth: 0
   attackDamage: 1
   attackRange: 1.5
-  attackSpeedMultiplier: 0.7
-  baseAttackSwingDuration: 0.5
-  attackCooldownBuffer: 0.2
+  attackSpeedMultiplier: 1
   swordAnchor: {fileID: 5463150524205889742}
   enemyLayer:
     serializedVersion: 2
@@ -163,6 +163,8 @@ MonoBehaviour:
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 256
+  thrownSwordPrefab: {fileID: 2296640474114385898, guid: 6f75a73d7d35d964fabad74a22f573e8, type: 3}
+  throwPoint: {fileID: 927736473217224745}
 --- !u!61 &5206410107677457106
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -285,6 +287,37 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0.068, y: -0.223, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 267355803871811499}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6958746647684189119
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 927736473217224745}
+  m_Layer: 0
+  m_Name: ThrownPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: -964228994112308473, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &927736473217224745
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6958746647684189119}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0.0104, y: -0.1119, z: 0}
+  m_LocalScale: {x: 0.2, y: 0.2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 267355803871811499}

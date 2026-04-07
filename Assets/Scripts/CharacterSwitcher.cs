@@ -2,17 +2,22 @@ using UnityEngine;
 
 public class CharacterSwitcher : MonoBehaviour
 {
-    public static CharacterSwitcher Instance; // ทำเป็น Singleton ให้เรียกใช้ง่ายๆ
+    public static CharacterSwitcher Instance;
 
     [Header("Characters")]
     public GameObject unarmedPlayer; 
     public GameObject armedPlayer;   
 
-    [Header("Camera Setup")]
+    [Header("Animators")]
+    public Animator unarmedAnimator; // 🟢 ลาก Animator ตัวมือเปล่ามาใส่
+    public Animator armedAnimator;   // 🟢 ลาก Animator ตัวถือดาบมาใส่
+
+    [Header("References")]
+    public PlayerController playerController; // 🟢 ลากสคริปต์ PlayerController มาใส่
     public CameraFollow cameraFollow; 
 
-    public bool isArmed { get; private set; } // เช็คสถานะปัจจุบัน
-    public Vector3 savedPreTutorialPosition; // เอาไว้จำจุดที่ยืนก่อนวาร์ปไป Tutorial
+    public bool isArmed { get; private set; } 
+    public Vector3 savedPreTutorialPosition; 
 
     void Awake()
     {
@@ -21,11 +26,9 @@ public class CharacterSwitcher : MonoBehaviour
 
     void Start()
     {
-        // เริ่มเกมด้วยมือเปล่าเสมอ
         ForceUnarmed();
     }
 
-    // ฟังก์ชันสั่งชักดาบ
     public void SwitchToArmed()
     {
         if (isArmed) return;
@@ -36,11 +39,16 @@ public class CharacterSwitcher : MonoBehaviour
         unarmedPlayer.SetActive(false);
         armedPlayer.SetActive(true);
 
+        // 🟢 บอก PlayerController ว่า "เปลี่ยนไปใช้ Animator ตัวถือดาบนะ!"
+        if (playerController != null && armedAnimator != null) 
+            playerController.ChangeAnimator(armedAnimator);
+
+        playerController.isArmed = true;
+
         if (cameraFollow != null) cameraFollow.target = armedPlayer.transform;
         isArmed = true;
     }
 
-    // ฟังก์ชันสั่งเก็บดาบ
     public void SwitchToUnarmed()
     {
         if (!isArmed) return;
@@ -51,6 +59,12 @@ public class CharacterSwitcher : MonoBehaviour
         armedPlayer.SetActive(false);
         unarmedPlayer.SetActive(true);
 
+        // 🟢 บอก PlayerController ว่า "เปลี่ยนไปใช้ Animator ตัวมือเปล่านะ!"
+        if (playerController != null && unarmedAnimator != null) 
+            playerController.ChangeAnimator(unarmedAnimator);
+
+        playerController.isArmed = false;
+
         if (cameraFollow != null) cameraFollow.target = unarmedPlayer.transform;
         isArmed = false;
     }
@@ -60,10 +74,16 @@ public class CharacterSwitcher : MonoBehaviour
         unarmedPlayer.SetActive(true);
         armedPlayer.SetActive(false);
         isArmed = false;
+        
+        if (playerController != null) 
+        {
+            playerController.isArmed = false;
+            if (unarmedAnimator != null) playerController.ChangeAnimator(unarmedAnimator);
+        }
+
         if (cameraFollow != null) cameraFollow.target = unarmedPlayer.transform;
     }
 
-    // ฟังก์ชันสำหรับจับตัวละครปัจจุบันวาร์ป
     public void TeleportActivePlayer(Vector3 newPosition)
     {
         if (isArmed) armedPlayer.transform.position = newPosition;
