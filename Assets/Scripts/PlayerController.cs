@@ -277,12 +277,16 @@ public class PlayerController : MonoBehaviour
 
             isAttacking = true; 
             lastAttackTime = Time.time;
+            
+            if (animator != null) animator.SetBool("isAttacking", true); // กางโล่!
 
             if (!isGrounded)
             {
                 comboStep = 2; 
-                rb.gravityScale = 0.5f; 
-                rb.linearVelocity = new Vector2(rb.linearVelocity.x, Mathf.Max(rb.linearVelocity.y, 0f));
+                
+                // 🟢 ไอเดียของคุณเลย! สั่งเบรกตัวละครกลางอากาศแบบเท่ๆ (Air Hang)
+                rb.linearVelocity = Vector2.zero; // ล็อคความเร็วทั้ง X และ Y ให้เป็น 0 ชะงักกึก!
+                rb.gravityScale = 0f; // ปิดแรงโน้มถ่วงชั่วคราว ดาบจะได้ไม่แป้ก
             }
             else
             {
@@ -320,12 +324,24 @@ public class PlayerController : MonoBehaviour
 
     public void AnimEvent_EnableHitbox()
     {
-        if (comboStep == 1 && hitboxCombo1 != null) hitboxCombo1.SetActive(true);
-        else if (comboStep == 2 && isGrounded && hitboxCombo2 != null) hitboxCombo2.SetActive(true);
-        else if (comboStep == 3 && hitboxCombo3 != null) hitboxCombo3.SetActive(true);
-        else if (!isGrounded && hitboxAir != null) hitboxAir.SetActive(true);
+        // ใช้ Try-Catch ดักจับบั๊ก ถ้ามีอะไรพังจะได้ไม่กระทบแอนิเมชันส่วนอื่น
+        try 
+        {
+            if (comboStep == 1 && hitboxCombo1 != null) hitboxCombo1.SetActive(true);
+            else if (comboStep == 2 && isGrounded && hitboxCombo2 != null) hitboxCombo2.SetActive(true);
+            else if (comboStep == 3 && hitboxCombo3 != null) hitboxCombo3.SetActive(true);
+            else if (!isGrounded && hitboxAir != null) hitboxAir.SetActive(true);
 
-        if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.1f, 0.05f)); 
+            // 🟢 ปรับวิธีเรียก Camera Shake ให้ปลอดภัยขึ้น
+            if (CameraShake.Instance != null && CameraShake.Instance.gameObject.activeInHierarchy) 
+            {
+                CameraShake.Instance.StartCoroutine(CameraShake.Instance.Shake(0.1f, 0.05f));
+            }
+        }
+        catch (System.Exception e) 
+        {
+            Debug.LogError("เจอตัวการพังใน EnableHitbox: " + e.Message);
+        }
     }
 
     public void AnimEvent_DisableHitbox()
@@ -339,6 +355,7 @@ public class PlayerController : MonoBehaviour
     public void AnimEvent_EndAttack()
     {
         isAttacking = false;
+        if (animator != null) animator.SetBool("isAttacking", false); // เก็บโล่!
         AnimEvent_DisableHitbox(); 
 
         if (comboStep == 3)
@@ -346,9 +363,16 @@ public class PlayerController : MonoBehaviour
             nextComboEnableTime = Time.time + fullComboCooldown;
         }
 
-        if (!isGrounded) rb.gravityScale = defaultGravity; 
+        // 🟢 เพิ่มโค้ดส่วนนี้: สั่งให้รีเซ็ตค่าคอมโบและคืนแรงโน้มถ่วงทันทีที่ตีกลางอากาศจบ
+        if (rb != null && !isGrounded) 
+        {
+            rb.gravityScale = defaultGravity; // คืนค่าแรงโน้มถ่วงให้ร่วงลงพื้น
+            
+            comboStep = 0; // ล้างค่าคอมโบเลย จะได้ไม่ไปบล็อกท่าเดิน/กระโดด
+            if (animator != null) animator.SetInteger("comboStep", 0);
+        }
     }
-
+    
     public int GetCurrentComboStep() { return comboStep; }
 
     private void ThrowSword()
