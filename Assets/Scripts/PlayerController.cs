@@ -11,8 +11,6 @@ public class PlayerController : MonoBehaviour
     public KeyCode crouchKey = KeyCode.LeftControl;
     public KeyCode attackKey = KeyCode.Mouse0; 
     public KeyCode blockKey = KeyCode.Mouse1; 
-    
-    // 🟢 [เพิ่มใหม่] ปุ่มสำหรับดึงดาบกลับ
     public KeyCode recallKey = KeyCode.R; 
     
     [Header("Character State")]
@@ -79,7 +77,6 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D rb;
     private float defaultGravity;
     
-    private Coroutine currentAttackRoutine;
     public bool isAttacking = false;
     private Coroutine currentHitStop;
 
@@ -87,17 +84,22 @@ public class PlayerController : MonoBehaviour
     public Animator animator; 
     private int comboStep = 0;          
     private float lastAttackTime = 0f;  
-    public float comboResetTime = 1.5f; 
-    public float attackInputBufferTime = 0.4f; 
-    private float lastAttackInputTime = -10f;
-
-    [Header("Greatsword Hitbox Settings")]
+    public float comboResetTime = 1.2f; 
+    public float fullComboCooldown = 0.5f; 
+    private float nextComboEnableTime = 0f; 
+    
+    // 🟢 [เพิ่มกลับมาแล้ว!] ตัวแปรเลือดที่เผลอลบไป
+    [Header("Health Settings")]
     public int maxHealth = 5;
     public int currentHealth;
+
+    [Header("Hitbox Objects")]
+    public GameObject hitboxCombo1;
+    public GameObject hitboxCombo2;
+    public GameObject hitboxCombo3;
+    public GameObject hitboxAir;
+
     public int attackDamage = 3; 
-    public float attackRange = 2.5f; 
-    
-    public Transform swordAnchor; 
     public LayerMask enemyLayer;
     public LayerMask obstacleLayer; 
 
@@ -105,7 +107,7 @@ public class PlayerController : MonoBehaviour
     public GameObject thrownSwordPrefab; 
     public Transform throwPoint;         
 
-    private Camera mainCam; // เอาไว้เช็คตำแหน่งเมาส์
+    private Camera mainCam; 
 
     private void Awake()
     {
@@ -120,9 +122,8 @@ public class PlayerController : MonoBehaviour
         defaultGravity = rb.gravityScale;
         currentHealth = maxHealth;
         currentGuardGauge = maxGuardGauge;
-        
         if (spriteRenderer != null) originalColor = spriteRenderer.color;
-        if (UIManager.Instance != null) UIManager.Instance.UpdateHealth(currentHealth);
+        if (UIManager.Instance != null) UIManager.Instance.UpdateHealth(currentHealth); 
     }
 
     private void Update()
@@ -146,11 +147,7 @@ public class PlayerController : MonoBehaviour
         }
         else 
         {
-            // 🟢 [เพิ่มใหม่] ถ้าร่างมือเปล่า สามารถกด R เพื่อดึงดาบกลับได้
-            if (Input.GetKeyDown(recallKey))
-            {
-                RecallSword();
-            }
+            if (Input.GetKeyDown(recallKey)) RecallSword();
         }
 
         HandleInteractInput();
@@ -160,7 +157,6 @@ public class PlayerController : MonoBehaviour
     private void FixedUpdate()
     {
         if (isTargetDashing || isNormalDashing || isStunned) return;
-        
         ApplyMovementPhysics();
         ApplyBetterGravity();
     }
@@ -173,10 +169,8 @@ public class PlayerController : MonoBehaviour
         if (isHoldingCrouch) moveSpeed = crouchSpeed;
         else moveSpeed = walkSpeed;
 
-        // 🟢 ลดอาการเดินกระตุก เดินฟันด้วยความเร็ว 50% ของปกติ จะลื่นไหลขึ้น
-        if (isAttacking) moveSpeed *= 0.5f; 
+        if (isAttacking) moveSpeed *= 0.3f; 
 
-        // 🟢 จะหันหน้าตามคีย์บอร์ดก็ต่อเมื่อไม่ได้กันอยู่ (เพราะกันอยู่จะหันตามเมาส์)
         if (moveInputX != 0 && !isAttacking && !isBlocking)
         {
             Vector3 currentScale = transform.localScale;
@@ -191,23 +185,18 @@ public class PlayerController : MonoBehaviour
         float speedDiff = targetSpeed - rb.linearVelocity.x;
         float accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? acceleration : deceleration;
         float movement = Mathf.Pow(Mathf.Abs(speedDiff) * accelRate, 0.9f) * Mathf.Sign(speedDiff);
-        
         rb.AddForce(movement * Vector2.right);
     }
 
     private void CheckGrounded()
     {
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
-
         if (isGrounded)
         {
             coyoteTimeCounter = coyoteTime;
             canDoubleJump = true;
         }
-        else
-        {
-            coyoteTimeCounter -= Time.deltaTime;
-        }
+        else coyoteTimeCounter -= Time.deltaTime;
     }
 
     private void HandleJump()
@@ -245,11 +234,8 @@ public class PlayerController : MonoBehaviour
     private void HandleNormalDashInput()
     {
         if (isBlocking) return;
-
         if (Input.GetKeyDown(normalDashKey) && Time.time >= nextNormalDashTime)
-        {
             StartCoroutine(NormalDashRoutine());
-        }
     }
 
     private IEnumerator NormalDashRoutine()
@@ -270,14 +256,10 @@ public class PlayerController : MonoBehaviour
         isNormalDashing = false;
     }
     
-    public void ChangeAnimator(Animator newAnimator)
-    {
-        animator = newAnimator;
-    }
+    public void ChangeAnimator(Animator newAnimator) { animator = newAnimator; }
 
     private void HandleCombatInput()
     {
-        // ระบบปาดาบ (กางโล่ + คลิกซ้าย)
         if (Input.GetKey(blockKey) && Input.GetKeyDown(attackKey))
         {
             ThrowSword();
@@ -286,39 +268,93 @@ public class PlayerController : MonoBehaviour
 
         if (isBlocking) return;
 
-        if (Input.GetKeyDown(attackKey)) lastAttackInputTime = Time.time;
-
-        if (Time.time - lastAttackTime > comboResetTime && comboStep != 0 && !isAttacking)
+        // 🟢 1. เปลี่ยนจาก GetKey เป็น GetKeyDown เพื่อบังคับให้ผู้เล่นต้อง "คลิก" เป็นจังหวะ
+        if (Input.GetKeyDown(attackKey))
         {
-            comboStep = 0;
-            if (animator != null) animator.SetInteger("comboStep", 0);
-        }
+            if (isAttacking || Time.time < nextComboEnableTime) return;
 
-        if (isAttacking) return; 
+            if (Time.time - lastAttackTime > comboResetTime) comboStep = 0;
 
-        if (Time.time - lastAttackInputTime <= attackInputBufferTime)
-        {
-            lastAttackInputTime = -10f; 
+            isAttacking = true; 
+            lastAttackTime = Time.time;
 
             if (!isGrounded)
             {
-                currentAttackRoutine = StartCoroutine(AirAttackRoutine());
-                return;
+                comboStep = 2; 
+                rb.gravityScale = 0.5f; 
+                rb.linearVelocity = new Vector2(rb.linearVelocity.x, Mathf.Max(rb.linearVelocity.y, 0f));
+            }
+            else
+            {
+                comboStep++;
+                if (comboStep > 3) comboStep = 1;
+                rb.linearVelocity = new Vector2(rb.linearVelocity.x * 0.8f, rb.linearVelocity.y);
             }
 
-            comboStep++;
-            if (comboStep > 3) comboStep = 1; 
+            if (animator != null)
+            {
+                animator.SetInteger("comboStep", comboStep);
+                animator.ResetTrigger("attackTrig");
+                animator.SetTrigger("attackTrig");
+            }
+        }
 
-            lastAttackTime = Time.time;
-            currentAttackRoutine = StartCoroutine(GreatswordComboRoutine(comboStep));
+        // 🟢 2. เพิ่มระบบ Failsafe (กันเหนียว)! 
+        // ถ้าเกิดว่าแอนิเมชันเล่นพลาด (Event ไม่ทำงาน) แล้วค้างนานกว่า 1 วินาที ให้รีเซ็ตตัวเองอัตโนมัติ
+        if (isAttacking && Time.time - lastAttackTime > 1.0f)
+        {
+            AnimEvent_EndAttack();
+            Debug.LogWarning("ระบบรีเซ็ตการโจมตีอัตโนมัติทำงาน! (เช็ค Animation Event ด่วน)");
+        }
+
+        if (Input.GetKeyDown(targetDashKey) && Time.time >= nextDashTime)
+        {
+            Transform target = FindNearestEnemy();
+            if (target != null)
+            {
+                StartCoroutine(TargetDashAttack(target));
+                nextDashTime = Time.time + dashCooldown;
+            }
         }
     }
+
+    public void AnimEvent_EnableHitbox()
+    {
+        if (comboStep == 1 && hitboxCombo1 != null) hitboxCombo1.SetActive(true);
+        else if (comboStep == 2 && isGrounded && hitboxCombo2 != null) hitboxCombo2.SetActive(true);
+        else if (comboStep == 3 && hitboxCombo3 != null) hitboxCombo3.SetActive(true);
+        else if (!isGrounded && hitboxAir != null) hitboxAir.SetActive(true);
+
+        if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.1f, 0.05f)); 
+    }
+
+    public void AnimEvent_DisableHitbox()
+    {
+        if (hitboxCombo1 != null) hitboxCombo1.SetActive(false);
+        if (hitboxCombo2 != null) hitboxCombo2.SetActive(false);
+        if (hitboxCombo3 != null) hitboxCombo3.SetActive(false);
+        if (hitboxAir != null) hitboxAir.SetActive(false);
+    }
+
+    public void AnimEvent_EndAttack()
+    {
+        isAttacking = false;
+        AnimEvent_DisableHitbox(); 
+
+        if (comboStep == 3)
+        {
+            nextComboEnableTime = Time.time + fullComboCooldown;
+        }
+
+        if (!isGrounded) rb.gravityScale = defaultGravity; 
+    }
+
+    public int GetCurrentComboStep() { return comboStep; }
 
     private void ThrowSword()
     {
         if (thrownSwordPrefab != null && throwPoint != null)
         {
-            // 🟢 คำนวณทิศทางจากจุดปา ไปหาเมาส์
             Vector3 mousePos = mainCam.ScreenToWorldPoint(Input.mousePosition);
             mousePos.z = 0;
             Vector2 throwDirection = (mousePos - throwPoint.position).normalized;
@@ -333,134 +369,83 @@ public class PlayerController : MonoBehaviour
         CharacterSwitcher.Instance.SwitchToUnarmed(); 
     }
 
-    // 🟢 [เพิ่มใหม่] ฟังก์ชันดึงดาบกลับด้วยปุ่ม R
     private void RecallSword()
     {
-        // หาดาบที่อยู่ในฉาก
-        ThrownSword stuckSword = FindObjectOfType<ThrownSword>();
+        ThrownSword stuckSword = Object.FindFirstObjectByType<ThrownSword>();
         if (stuckSword != null)
         {
-            Destroy(stuckSword.gameObject); // ทำลายดาบที่ปักกำแพงทิ้ง
-            CharacterSwitcher.Instance.SwitchToArmed(); // สลับร่างเป็นถือดาบ
-            Debug.Log("Sword Recalled!");
+            Destroy(stuckSword.gameObject); 
         }
+        // 🟢 เอาออกมาระดับนี้เลย เพื่อการันตีว่ากดเรียกแล้วดาบต้องกลับมาที่มือ!
+        CharacterSwitcher.Instance.SwitchToArmed(); 
     }
 
-    private IEnumerator AirAttackRoutine()
+    private Transform FindNearestEnemy()
     {
-        isAttacking = true;
-        
+        Collider2D[] enemies = Physics2D.OverlapCircleAll(transform.position, dashRange, enemyLayer);
+        Transform closest = null;
+        float minDistance = Mathf.Infinity;
+
+        foreach (Collider2D enemy in enemies)
+        {
+            float dist = Vector2.Distance(transform.position, enemy.transform.position);
+            if (dist < minDistance)
+            {
+                Vector2 dir = (enemy.transform.position - transform.position).normalized;
+                RaycastHit2D hit = Physics2D.Raycast(transform.position, dir, dist, obstacleLayer);
+                
+                if (hit.collider == null) 
+                {
+                    closest = enemy.transform;
+                    minDistance = dist;
+                }
+            }
+        }
+        return closest;
+    }
+
+    private IEnumerator TargetDashAttack(Transform target)
+    {
+        isTargetDashing = true;
+        if (animator != null) animator.SetBool("isDashing", true);
+
+        Vector2 startPos = transform.position;
+        Vector2 dirToTarget = (target.position - transform.position).normalized;
+        Vector2 targetPos = (Vector2)target.position - (dirToTarget * 1.0f); 
+
+        float dist = Vector2.Distance(startPos, targetPos);
+        float duration = dist / dashSpeed;
+        float time = 0;
+
         float originalGravity = rb.gravityScale;
-        rb.gravityScale = 0.5f; 
-        rb.linearVelocity = new Vector2(rb.linearVelocity.x, Mathf.Max(rb.linearVelocity.y, 0f));
+        rb.gravityScale = 0; 
+        rb.linearVelocity = Vector2.zero;
 
-        if (animator != null) 
+        while (time < duration)
         {
-            animator.SetInteger("comboStep", 2); 
-            animator.SetTrigger("attackTrig"); 
+            if (target == null) break; 
+            Vector2 newPos = Vector2.Lerp(startPos, targetPos, time / duration);
+            rb.MovePosition(newPos);
+            time += Time.fixedDeltaTime;
+            yield return new WaitForFixedUpdate();
         }
 
-        float hitTime = 0.3f;
-        yield return new WaitForSeconds(hitTime);
-        
-        bool hitEnemy = false;
-        if (swordAnchor != null)
+        if (target != null)
         {
-            Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(swordAnchor.position, attackRange, enemyLayer);
-            foreach (Collider2D enemy in hitEnemies)
+            EnemyBehavior enemyScript = target.GetComponent<EnemyBehavior>();
+            if (enemyScript != null)
             {
-                EnemyBehavior enemyScript = enemy.GetComponent<EnemyBehavior>();
-                if (enemyScript != null) 
-                {
-                    enemyScript.TakeDamage(attackDamage);
-                    hitEnemy = true;
-                }
+                enemyScript.TakeDamage(attackDamage);
+                canDoubleJump = true; 
+                TriggerHitStop(0.15f); 
             }
         }
-
-        // 🟢 [เพิ่มใหม่] Screen Shake และ HitStop ในท่า Air Slash
-        if (hitEnemy)
-        {
-            TriggerHitStop(0.12f);
-            if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.2f, 0.15f));
-        }
-
-        yield return new WaitForSeconds(0.4f);
-
-        rb.gravityScale = originalGravity;
-        isAttacking = false;
-        currentAttackRoutine = null;
-    }
-
-    private IEnumerator GreatswordComboRoutine(int currentComboStep)
-    {
-        isAttacking = true; 
         
-        float animDuration = 1.2f;
-        float hitTime = 0.5f;
+        if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.25f, 0.2f)); 
 
-        if (currentComboStep == 1) { animDuration = 1.2f; hitTime = 0.5f; }
-        else if (currentComboStep == 2) { animDuration = 0.9f; hitTime = 0.4f; }
-        else if (currentComboStep == 3) { animDuration = 0.6f; hitTime = 0.3f; }
-
-        int currentDamage = attackDamage + (currentComboStep == 3 ? 2 : 0);
-        float hitStopDuration = currentComboStep == 3 ? 0.25f : 0.12f;
-        float currentCamShake = currentComboStep == 3 ? 0.5f : 0.3f;
-
-        if (animator != null) 
-        {
-            animator.SetInteger("comboStep", currentComboStep);
-            animator.SetTrigger("attackTrig");
-        }
-
-        yield return new WaitForSeconds(hitTime);
-
-        if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.1f, 0.05f)); 
-        
-        bool hitEnemyInSwing = false;
-        float activeHitboxDuration = 0.15f;
-        float timer = 0f;
-        HashSet<Collider2D> damagedEnemies = new HashSet<Collider2D>();
-
-        while (timer < activeHitboxDuration)
-        {
-            if (swordAnchor != null)
-            {
-                Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(swordAnchor.position, attackRange, enemyLayer);
-                foreach (Collider2D enemy in hitEnemies)
-                {
-                    if (!damagedEnemies.Contains(enemy))
-                    {
-                        EnemyBehavior enemyScript = enemy.GetComponent<EnemyBehavior>();
-                        if (enemyScript != null) 
-                        {
-                            enemyScript.TakeDamage(currentDamage); 
-                            damagedEnemies.Add(enemy); 
-                            hitEnemyInSwing = true;
-                        }
-                    }
-                }
-            }
-            timer += Time.deltaTime;
-            yield return null;
-        }
-
-        if (hitEnemyInSwing || currentComboStep == 3)
-        {
-            TriggerHitStop(hitStopDuration); 
-            if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.3f, currentCamShake)); 
-        }
-
-        float recoveryDuration = animDuration - hitTime - activeHitboxDuration;
-        if (recoveryDuration > 0)
-        {
-            // ดึงดาบกลับไวขึ้นนิดนึงให้สมูท
-            if (hitEnemyInSwing) recoveryDuration *= 0.8f; 
-            yield return new WaitForSeconds(recoveryDuration);
-        }
-
-        isAttacking = false;
-        currentAttackRoutine = null;
+        rb.gravityScale = originalGravity; 
+        isTargetDashing = false;
+        if (animator != null) animator.SetBool("isDashing", false);
     }
 
     private void HandleBlockingState()
@@ -474,7 +459,6 @@ public class PlayerController : MonoBehaviour
             moveSpeed = 0f;
             rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y); 
 
-            // 🟢 [เพิ่มใหม่] เวลาโล่กาง (เล็งปาดาบ) ให้หันหน้าไปหาเมาส์
             Vector3 mousePos = mainCam.ScreenToWorldPoint(Input.mousePosition);
             float facingDir = Mathf.Sign(mousePos.x - transform.position.x);
             Vector3 currentScale = transform.localScale;
@@ -488,7 +472,6 @@ public class PlayerController : MonoBehaviour
         {
             currentGuardGauge += guardRegenRate * Time.deltaTime;
             currentGuardGauge = Mathf.Clamp(currentGuardGauge, 0, maxGuardGauge);
-            
             if (spriteRenderer != null && spriteRenderer.color == blockColor) spriteRenderer.color = originalColor;
         }
     }
@@ -508,7 +491,6 @@ public class PlayerController : MonoBehaviour
         isStunned = false;
         if (spriteRenderer != null) spriteRenderer.color = originalColor; 
         currentGuardGauge = maxGuardGauge; 
-        Debug.Log("Stun Over, Guard Restored!");
     }
 
     private enum JuiceType { Hurt, Block, ArmorBreak, Stun }
@@ -518,12 +500,8 @@ public class PlayerController : MonoBehaviour
 
         switch (type)
         {
-            case JuiceType.Hurt:
-                StartCoroutine(FlashColorRoutine(Color.red, originalColor));
-                break;
-            case JuiceType.Block:
-                spriteRenderer.color = blockColor;
-                break;
+            case JuiceType.Hurt: StartCoroutine(FlashColorRoutine(Color.red, originalColor)); break;
+            case JuiceType.Block: spriteRenderer.color = blockColor; break;
             case JuiceType.ArmorBreak:
                 StartCoroutine(FlashColorRoutine(armorBreakColor, originalColor));
                 TriggerHitStop(0.15f); 
@@ -543,7 +521,7 @@ public class PlayerController : MonoBehaviour
         if (spriteRenderer != null) spriteRenderer.color = defaultColor;
     }
 
-    private void TriggerHitStop(float duration)
+    public void TriggerHitStop(float duration)
     {
         if (currentHitStop != null) StopCoroutine(currentHitStop);
         currentHitStop = StartCoroutine(HitStopRoutine(duration));
@@ -578,17 +556,13 @@ public class PlayerController : MonoBehaviour
             TriggerHitStop(0.04f); 
 
             currentGuardGauge -= guardDepleteOnHit;
-            
             if (currentGuardGauge <= 0) TriggerArmorBreak();
             else damage = Mathf.RoundToInt(damage * blockDamageReduction);
         }
-        else
-        {
-            TriggerJuice(JuiceType.Hurt);
-        }
+        else TriggerJuice(JuiceType.Hurt);
 
         currentHealth -= damage;
-        if (UIManager.Instance != null) UIManager.Instance.UpdateHealth(currentHealth);
+        if (UIManager.Instance != null) UIManager.Instance.UpdateHealth(currentHealth); 
         if (currentHealth <= 0) Die();
     }
 
@@ -610,7 +584,8 @@ public class PlayerController : MonoBehaviour
         currentGuardGauge = 0; 
         stunTimer = stunDuration;
         TriggerJuice(JuiceType.ArmorBreak);
-        Debug.Log("ARMOR BROKEN! Stunned!");
+        
+        if (rb != null) rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
     }
 
     void Die() { Debug.Log("Game Over"); }
@@ -622,20 +597,19 @@ public class PlayerController : MonoBehaviour
             Gizmos.color = Color.green;
             Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
         }
-        if (swordAnchor != null)
-        {
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(swordAnchor.position, attackRange); 
-        }
     }
     
     private void UpdateAnimations()
     {
         if (animator == null) return;
-
         animator.SetFloat("Speed", Mathf.Abs(rb.linearVelocity.x));
         animator.SetBool("IsGrounded", isGrounded);
         animator.SetFloat("VelocityY", rb.linearVelocity.y);
-        animator.SetBool("isAttacking", isAttacking); 
+    }
+    
+    private void OnDestroy()
+    {
+        // 🟢 คืนค่าเวลาเสมอเมื่อ Player ถูกทำลาย (กันเกมค้าง)
+        Time.timeScale = 1f;
     }
 }

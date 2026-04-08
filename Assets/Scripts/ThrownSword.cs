@@ -74,7 +74,7 @@ public class ThrownSword : MonoBehaviour
         // ล็อคดาบให้ติดแน่น
         rb.linearVelocity = Vector2.zero; 
         rb.angularVelocity = 0f;
-        rb.isKinematic = true; 
+        rb.bodyType = RigidbodyType2D.Kinematic;
 
         // เปลี่ยนตัวเองให้เป็น Obstacle เผื่อใช้บังเลเซอร์
         int obstacleLayer = LayerMask.NameToLayer("Obstacle");

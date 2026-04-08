@@ -117,6 +117,7 @@ MonoBehaviour:
   crouchKey: 306
   attackKey: 323
   blockKey: 324
+  recallKey: 114
   isArmed: 1
   walkSpeed: 6
   crouchSpeed: 3
@@ -148,14 +149,14 @@ MonoBehaviour:
   blockColor: {r: 1, g: 1, b: 1, a: 1}
   armorBreakColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   stunColor: {r: 0, g: 1, b: 1, a: 1}
+  isAttacking: 0
   animator: {fileID: 0}
   comboResetTime: 1.2
-  attackInputBufferTime: 0.4
+  fullComboCooldown: 0.5
   maxHealth: 5
   currentHealth: 0
   attackDamage: 1
-  attackRange: 1.5
-  attackSpeedMultiplier: 1
+  hitboxSize: {x: 3.07, y: 2.74}
   swordAnchor: {fileID: 5463150524205889742}
   enemyLayer:
     serializedVersion: 2
