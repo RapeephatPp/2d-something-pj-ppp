@@ -14,7 +14,9 @@ public class PlayerController : MonoBehaviour
     public KeyCode recallKey = KeyCode.R; 
     
     [Header("Character State")]
-    public bool isArmed = true; 
+    public static bool isArmed = true; 
+    private static ThrownSword activeSword;
+    public static bool hasThrownSword = false;
 
     [Header("Movement Settings")]
     public float walkSpeed = 6f;
@@ -119,6 +121,11 @@ public class PlayerController : MonoBehaviour
 
     private void Start()
     {   
+        if (gameObject.name.Contains("Maris") && !gameObject.name.Contains("Sword")) 
+        {
+            isArmed = false;
+        }
+        
         defaultGravity = rb.gravityScale;
         currentHealth = maxHealth;
         currentGuardGauge = maxGuardGauge;
@@ -262,14 +269,19 @@ public class PlayerController : MonoBehaviour
     {
         if (Input.GetKey(blockKey) && Input.GetKeyDown(attackKey))
         {
-            ThrowSword();
+            if (isArmed) ThrowSword(); 
             return;
+        }
+        
+        if (Input.GetKeyDown(recallKey))
+        {
+            if (!isArmed) RecallSword();
         }
 
         if (isBlocking) return;
 
         // 🟢 1. เปลี่ยนจาก GetKey เป็น GetKeyDown เพื่อบังคับให้ผู้เล่นต้อง "คลิก" เป็นจังหวะ
-        if (Input.GetKeyDown(attackKey))
+        if (Input.GetKey(attackKey))
         {
             if (isAttacking || Time.time < nextComboEnableTime) return;
 
@@ -377,31 +389,39 @@ public class PlayerController : MonoBehaviour
 
     private void ThrowSword()
     {
-        if (thrownSwordPrefab != null && throwPoint != null)
-        {
-            Vector3 mousePos = mainCam.ScreenToWorldPoint(Input.mousePosition);
-            mousePos.z = 0;
-            Vector2 throwDirection = (mousePos - throwPoint.position).normalized;
+        isArmed = false; // ปาไปแล้ว สถานะส่วนรวมคือ "มือเปล่า"
+        hasThrownSword = true;
+        CharacterSwitcher.Instance.SwitchToUnarmed();
 
-            GameObject sword = Instantiate(thrownSwordPrefab, throwPoint.position, Quaternion.identity);
-            ThrownSword ts = sword.GetComponent<ThrownSword>();
-            if (ts != null) ts.Initialize(throwDirection); 
-        }
-        
-        isBlocking = false;
-        if (animator != null) animator.SetBool("isBlocking", false);
-        CharacterSwitcher.Instance.SwitchToUnarmed(); 
+        // สร้างดาบและจดจำมันไว้ในตัวแปรส่วนรวม
+        GameObject swordObj = Instantiate(thrownSwordPrefab, throwPoint.position, throwPoint.rotation);
+        activeSword = swordObj.GetComponent<ThrownSword>(); 
+
+        Vector2 throwDirection = (Camera.main.ScreenToWorldPoint(Input.mousePosition) - throwPoint.position).normalized;
+        activeSword.Initialize(throwDirection);
     }
 
     private void RecallSword()
     {
-        ThrownSword stuckSword = Object.FindFirstObjectByType<ThrownSword>();
-        if (stuckSword != null)
+        if (activeSword != null)
         {
-            Destroy(stuckSword.gameObject); 
+            // ถ้ามีดาบอยู่ข้างนอก สั่งให้มันบินกลับมาที่ร่างปัจจุบัน (this.transform)
+            activeSword.ReturnToPlayer(this.transform); 
         }
-        // 🟢 เอาออกมาระดับนี้เลย เพื่อการันตีว่ากดเรียกแล้วดาบต้องกลับมาที่มือ!
-        CharacterSwitcher.Instance.SwitchToArmed(); 
+        else if (hasThrownSword)
+        {
+            // ถ้าดาบพังหรือหายไปแล้ว ค่อยเสกกลับเข้ามือ
+            CatchSword();
+        }
+    }
+    
+    // 🟢 ฟังก์ชันนี้ดาบจะเป็นคนเรียกใช้ตอนที่มันบินมาถึงตัวเราแล้ว
+    public void CatchSword()
+    {
+        isArmed = true; // ดาบเข้ามือแล้ว สถานะส่วนรวมคือ "ถือดาบ"
+        hasThrownSword = false;
+        CharacterSwitcher.Instance.SwitchToArmed();
+        CameraShake.Instance.StartCoroutine(CameraShake.Instance.Shake(0.15f, 0.1f));
     }
 
     private Transform FindNearestEnemy()
@@ -548,10 +568,10 @@ public class PlayerController : MonoBehaviour
     public void TriggerHitStop(float duration)
     {
         if (currentHitStop != null) StopCoroutine(currentHitStop);
-        currentHitStop = StartCoroutine(HitStopRoutine(duration));
+        currentHitStop = StartCoroutine(HitStopRoutine(duration, 0));
     }
 
-    private IEnumerator HitStopRoutine(float duration)
+    public System.Collections.IEnumerator HitStopRoutine(float duration, float scale)
     {
         Time.timeScale = 0f;
         yield return new WaitForSecondsRealtime(duration);

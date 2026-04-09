@@ -155,7 +155,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0.0011474937, y: 0.0002643466}
+  m_Offset: {x: 0.005790256, y: -0.00022435933}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
@@ -165,7 +165,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.5056064, y: 0.12497762}
+  m_Size: {x: 0.4836145, y: 0.112271175}
   m_EdgeRadius: 0
 --- !u!114 &2517746087323752344
 MonoBehaviour:
@@ -179,5 +179,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd9bb11478ed1a742b102d59168cc529, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ThrownSword
-  flySpeed: 20
+  flySpeed: 40
+  returnSpeed: 35
   embedDepth: 0.5
+  throwDamage: 2

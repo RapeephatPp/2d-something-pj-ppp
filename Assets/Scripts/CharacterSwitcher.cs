@@ -43,7 +43,7 @@ public class CharacterSwitcher : MonoBehaviour
         if (playerController != null && armedAnimator != null) 
             playerController.ChangeAnimator(armedAnimator);
 
-        playerController.isArmed = true;
+        PlayerController.isArmed = true;
 
         if (cameraFollow != null) cameraFollow.target = armedPlayer.transform;
         isArmed = true;
@@ -63,7 +63,7 @@ public class CharacterSwitcher : MonoBehaviour
         if (playerController != null && unarmedAnimator != null) 
             playerController.ChangeAnimator(unarmedAnimator);
 
-        playerController.isArmed = false;
+        PlayerController.isArmed = false;
 
         if (cameraFollow != null) cameraFollow.target = unarmedPlayer.transform;
         isArmed = false;
@@ -77,7 +77,7 @@ public class CharacterSwitcher : MonoBehaviour
         
         if (playerController != null) 
         {
-            playerController.isArmed = false;
+            PlayerController.isArmed = false;
             if (unarmedAnimator != null) playerController.ChangeAnimator(unarmedAnimator);
         }
 

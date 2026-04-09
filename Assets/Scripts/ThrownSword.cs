@@ -2,64 +2,106 @@ using UnityEngine;
 
 public class ThrownSword : MonoBehaviour
 {
+    [Header("Throw Settings")]
     public float flySpeed = 25f; 
-    
-    [Tooltip("ความลึกตอนที่ดาบเสียบเข้าไปในกำแพง (ยิ่งเยอะยิ่งปักมิดด้าม)")]
+    public float returnSpeed = 35f; // บินกลับต้องไวกว่าปาไป!
     public float embedDepth = 0.5f; 
-    
+    public int throwDamage = 15;    // 🟢 ดาเมจตอนปาอัดหน้าศัตรู
+
     private Rigidbody2D rb;
+    private Collider2D col;
     private bool isStuck = false;
+    private bool isReturning = false;
+    private Transform playerTarget;
+    private PlayerController playerController;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        col = GetComponent<Collider2D>();
     }
 
-    // 🟢 เปลี่ยนมารับค่าเป็น Vector2 (ทิศทางไปยังเมาส์)
     public void Initialize(Vector2 throwDirection)
     {
-        // คำนวณองศาหมุนให้ดาบชี้ไปทางเดียวกับที่พุ่ง
         float angle = Mathf.Atan2(throwDirection.y, throwDirection.x) * Mathf.Rad2Deg;
         transform.rotation = Quaternion.Euler(0, 0, angle);
 
-        // ปิดแรงโน้มถ่วงชั่วคราวตอนกำลังพุ่ง
         rb.gravityScale = 0f;
         rb.linearVelocity = throwDirection * flySpeed;
     }
 
-    // 🟢 เช็คการชนกำแพง/พื้น (ใช้ Collider แบบ Physics ปกติ ไม่ต้องติ๊ก IsTrigger)
-    private void OnCollisionEnter2D(Collision2D collision)
+    // 🟢 ฟังก์ชันใหม่: เรียกดาบกลับ
+    public void ReturnToPlayer(Transform player)
     {
-        if (isStuck) return;
+        isReturning = true;
+        isStuck = false;
+        playerTarget = player;
+        playerController = player.GetComponent<PlayerController>();
 
-        // ไม่ชนผู้เล่น ศัตรู หรืออาวุธ
-        if (collision.gameObject.CompareTag("Player") || collision.gameObject.CompareTag("Enemy") || collision.gameObject.CompareTag("Weapon")) return;
+        // ตั้งค่าฟิสิกส์ให้บินทะลุกำแพงกลับมาได้
+        rb.bodyType = RigidbodyType2D.Kinematic;
+        rb.linearVelocity = Vector2.zero;
+        col.isTrigger = true; // ทะลุทุกอย่างกลับมาหาเรา
+    }
 
-        // ถ้าชนกำแพง หรือพื้น (Layer = Ground หรือ Obstacle) ให้ปักเลย!
-        if (collision.gameObject.layer == LayerMask.NameToLayer("Ground") || collision.gameObject.layer == LayerMask.NameToLayer("Obstacle"))
+    void Update()
+    {
+        // 🟢 ลอจิกตอนดาบบินกลับเข้ามือ
+        if (isReturning && playerTarget != null)
         {
-            StickToWall();
-        }
-        else 
-        {
-            // ถ้าชนอย่างอื่นที่ปักไม่ได้ ให้ดาบร่วงลงพื้น!
-            FallToGround();
+            // ให้ดาบหมุนชี้หน้าเข้าหาผู้เล่น (เท่ๆ)
+            Vector2 dir = (playerTarget.position - transform.position).normalized;
+            float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+            transform.rotation = Quaternion.Euler(0, 0, angle);
+
+            // บินเข้าหาอย่างรวดเร็ว
+            transform.position = Vector2.MoveTowards(transform.position, playerTarget.position, returnSpeed * Time.deltaTime);
+
+            // ถ้าบินมาถึงตัว (ระยะใกล้กว่า 1 Unit) ให้เข้ามือ
+            if (Vector2.Distance(transform.position, playerTarget.position) < 1.0f)
+            {
+                if (playerController != null) playerController.CatchSword();
+                Destroy(gameObject); // ทำลายตัวเองทิ้ง
+            }
         }
     }
 
-    // เผื่อเผลอตั้งดาบเป็น Is Trigger ไว้ ก็ให้มันปักเหมือนกัน
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        HandleImpact(collision.gameObject);
+    }
+
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (isStuck) return;
+        HandleImpact(collision.gameObject);
+    }
 
-        if (collision.CompareTag("Player") || collision.CompareTag("Enemy") || collision.CompareTag("Weapon")) return;
+    // 🟢 รวมลอจิกการชนมาไว้ที่เดียว
+    private void HandleImpact(GameObject hitObj)
+    {
+        if (isStuck || isReturning) return;
 
-        if (collision.gameObject.layer == LayerMask.NameToLayer("Ground") || collision.gameObject.layer == LayerMask.NameToLayer("Obstacle"))
+        // ไม่สนถ้าชนผู้เล่น หรือ อาวุธด้วยกันเอง
+        if (hitObj.CompareTag("Player") || hitObj.CompareTag("Weapon")) return;
+
+        // 1. ถ้าชนศัตรู
+        if (hitObj.CompareTag("Enemy"))
+        {
+            EnemyBehavior enemy = hitObj.GetComponent<EnemyBehavior>();
+            if (enemy != null) enemy.TakeDamage(throwDamage);
+            
+            FallToGround(); // ชนศัตรูเสร็จ ดาบต้องกระเด้งตกพื้น
+            return;
+        }
+
+        // 2. ถ้าชนกำแพง/พื้น (เช็คจาก Layer)
+        if (hitObj.layer == LayerMask.NameToLayer("Ground") || hitObj.layer == LayerMask.NameToLayer("Obstacle"))
         {
             StickToWall();
         }
         else 
         {
+            // 3. ถ้าชนอย่างอื่นที่ไม่ได้ระบุไว้ ให้ตกพื้น
             FallToGround();
         }
     }
@@ -67,24 +109,21 @@ public class ThrownSword : MonoBehaviour
     private void StickToWall()
     {
         isStuck = true;
-        
-        // 🟢 ดันดาบให้จมเข้าไปในกำแพงตามทิศทางที่พุ่งมา (embedDepth)
         transform.position += (Vector3)rb.linearVelocity.normalized * embedDepth;
-
-        // ล็อคดาบให้ติดแน่น
         rb.linearVelocity = Vector2.zero; 
         rb.angularVelocity = 0f;
         rb.bodyType = RigidbodyType2D.Kinematic;
-
-        // เปลี่ยนตัวเองให้เป็น Obstacle เผื่อใช้บังเลเซอร์
-        int obstacleLayer = LayerMask.NameToLayer("Obstacle");
-        if (obstacleLayer != -1) gameObject.layer = obstacleLayer; 
     }
 
+    // 🟢 ฟังก์ชันใหม่: ฟิสิกส์ตอนดาบร่วง
     private void FallToGround()
     {
-        // เปิดแรงโน้มถ่วงให้ร่วงตกตามธรรมชาติ
-        rb.gravityScale = 3f; 
-        rb.linearVelocity = new Vector2(0f, -5f); 
+        isStuck = true; // ป้องกันไม่ให้โดนชนซ้ำๆ จนเด้งมั่ว
+        rb.bodyType = RigidbodyType2D.Dynamic;
+        rb.gravityScale = 3f; // ร่วงเร็วๆ หน่อย จะได้ดูมีน้ำหนัก
+        
+        // ให้มันกระเด้งถอยหลังนิดๆ แล้วหมุนติ้วๆ ตกลงพื้น
+        rb.linearVelocity = new Vector2(rb.linearVelocity.x * -0.3f, 5f); 
+        rb.angularVelocity = Random.Range(300f, 700f) * (Random.value > 0.5f ? 1 : -1);
     }
 }

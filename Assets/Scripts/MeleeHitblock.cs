@@ -1,46 +1,63 @@
 using UnityEngine;
-using System.Collections.Generic;
 
-public class MeleeHitbox : MonoBehaviour
+public class MeleeHitblock : MonoBehaviour
 {
-    [Header("Hitbox Settings")]
-    public int damage = 3;
-    public float hitStopDuration = 0.1f;
-    public float camShakeMagnitude = 0.2f;
+    [Header("Combat Stats")]
+    public int damage = 10;
+    public float knockbackForce = 5f; // แรงผลักศัตรูกระเด็น
 
-    private HashSet<Collider2D> hitEnemies = new HashSet<Collider2D>();
+    [Header("Game Feel")]
+    public float hitstopDuration = 0.05f; // ระยะเวลาหยุดเฟรม (ยิ่งนานยิ่งรู้สึกว่าตีแรง)
+    public float hitstopScale = 0.0f;     // ความช้าตอนชน (0 คือหยุดนิ่งเลย)
+
     private PlayerController player;
 
-    void Awake()
+    private void Start()
     {
+        // ดึงคอมโพเนนต์ PlayerController จากตัวละครหลัก (เพราะกล่อง Hitbox มักเป็นลูกของ Player)
         player = GetComponentInParent<PlayerController>();
-        
-        // 🟢 ซ่อนกล่องแดงไว้ก่อนตอนเริ่มเกม โค้ด Player จะเป็นคนสั่งเปิดเอง
-        gameObject.SetActive(false);
     }
 
-    void OnEnable()
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        // ล้างความจำศัตรูทุกครั้งที่กล่องแดงโผล่มาใหม่ (เริ่มฟันฮิตใหม่)
-        hitEnemies.Clear();
-    }
-
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        // ถ้ากล่องแดงไปโดนศัตรู และศัตรูตัวนั้นยังไม่เคยโดนดาเมจในฮิตนี้
-        if (collision.CompareTag("Enemy") && !hitEnemies.Contains(collision))
+        // 1. เช็คว่าแท็กของสิ่งที่ชนคือ "Enemy" ใช่หรือไม่
+        if (other.CompareTag("Enemy"))
         {
-            hitEnemies.Add(collision); // จำไว้ว่าตัวนี้โดนฟันแล้ว
-            
-            EnemyBehavior enemy = collision.GetComponent<EnemyBehavior>();
+            // 2. เรียกให้ศัตรูลดเลือด (อ้างอิงไปที่สคริปต์ศัตรูของคุณ)
+            EnemyBehavior enemy = other.GetComponent<EnemyBehavior>();
             if (enemy != null)
             {
-                enemy.TakeDamage(damage);
-                
-                // สั่งหยุดเวลาและสั่นกล้อง
-                if (player != null) player.TriggerHitStop(hitStopDuration);
-                if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.2f, camShakeMagnitude));
+                enemy.TakeDamage(damage); 
             }
+
+            // 3. ฟิสิกส์: ดันศัตรูให้กระเด็นถอยหลัง (Knockback)
+            Rigidbody2D enemyRb = other.GetComponent<Rigidbody2D>();
+            if (enemyRb != null)
+            {
+                // คำนวณหาทิศทางว่าศัตรูอยู่ซ้ายหรือขวาของดาบเรา
+                float pushDirection = Mathf.Sign(other.transform.position.x - player.transform.position.x);
+                
+                // สร้างเวกเตอร์แรงผลัก: ถอยหลัง (X) และลอยขึ้นนิดๆ (Y) ให้ดูมีน้ำหนัก
+                Vector2 knockback = new Vector2(pushDirection * knockbackForce, knockbackForce * 0.3f);
+                
+                enemyRb.linearVelocity = Vector2.zero; // ล้างแรงเก่าของศัตรูทิ้งก่อน
+                enemyRb.AddForce(knockback, ForceMode2D.Impulse); // กระแทกเปรี้ยง!
+            }
+
+            // 4. Game Feel: สั่งหยุดเวลาชั่วคราวและสั่นกล้อง
+            if (player != null)
+            {
+                // สั่งรัน Coroutine HitStop (ต้องแก้ใน PlayerController ให้เป็น public ด้วยนะ)
+                player.StartCoroutine(player.HitStopRoutine(hitstopDuration, hitstopScale));
+            }
+
+            if (CameraShake.Instance != null)
+            {
+                // ตีโดนปุ๊บ กล้องสั่นปั๊บ
+                CameraShake.Instance.StartCoroutine(CameraShake.Instance.Shake(0.15f, 0.1f));
+            }
+
+            // 🟢 จุดเสริมอนาคต: ถ้ามี Particle เลือดหรือแสงดาบ ก็ Instantiate ตรงนี้ได้เลย!
         }
     }
 }
