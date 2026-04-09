@@ -2,7 +2,13 @@ using UnityEngine;
 
 public class WeaponPickup : MonoBehaviour
 {
+    [Header("Settings")]
     public KeyCode interactKey = KeyCode.E;
+
+    [Header("Replacement Object")]
+    [Tooltip("เอา Prefab ของแท่นวางเปล่าๆ หรือของที่จะให้โผล่มาแทนที่ มาใส่ตรงนี้")]
+    public GameObject replacementPrefab; // 🟢 เพิ่มตัวแปรนี้เข้ามา
+
     private bool isPlayerNear = false;
 
     void Update()
@@ -13,7 +19,13 @@ public class WeaponPickup : MonoBehaviour
             // 1. สั่งให้ผู้เล่นเปลี่ยนเป็นร่างถือดาบ
             CharacterSwitcher.Instance.SwitchToArmed();
             
-            // 2. ทำลายวัตถุจุดเก็บดาบทิ้งไปเลย (เก็บได้ครั้งเดียว เปลี่ยนกลับไม่ได้)
+            // 🟢 2. เสก Object ใหม่ขึ้นมาแทนที่ตำแหน่งเดิมและองศาเดิม (ถ้ามีการลากมาใส่ไว้)
+            if (replacementPrefab != null)
+            {
+                Instantiate(replacementPrefab, transform.position, transform.rotation);
+            }
+
+            // 3. ทำลายวัตถุจุดเก็บดาบทิ้งไปเลย
             Destroy(gameObject);
         }
     }
