@@ -134,15 +134,15 @@ ScriptedImporter:
   animatedSpriteImportData:
   - name: Frame_0
     originalName: 
-    pivot: {x: 0.8780488, y: 0.5897436}
+    pivot: {x: 0.8913044, y: 0.5897436}
     alignment: 9
     border: {x: 0, y: 0, z: 0, w: 0}
     customData: 
     rect:
       serializedVersion: 2
       x: 57
-      y: 4
-      width: 41
+      y: 56
+      width: 46
       height: 39
     spriteID: dd9e1e7a490f97f4681e549677ba65ef
     spriteBone: []
@@ -152,18 +152,18 @@ ScriptedImporter:
     indices: 
     edges: []
     tessellationDetail: 0
-    uvTransform: {x: 57, y: 4}
+    uvTransform: {x: 57, y: 56}
   - name: Frame_1
     originalName: 
-    pivot: {x: 0.31111112, y: 0.5227273}
+    pivot: {x: 0.2916667, y: 0.5227273}
     alignment: 9
     border: {x: 0, y: 0, z: 0, w: 0}
     customData: 
     rect:
       serializedVersion: 2
-      x: 4
-      y: 57
-      width: 45
+      x: 57
+      y: 4
+      width: 48
       height: 44
     spriteID: 75a5ef4c8bb54834a817ac4d3eb45545
     spriteBone: []
@@ -173,10 +173,10 @@ ScriptedImporter:
     indices: 
     edges: []
     tessellationDetail: 0
-    uvTransform: {x: 4, y: 57}
+    uvTransform: {x: 57, y: 4}
   - name: Frame_2
     originalName: 
-    pivot: {x: 0.33333334, y: 0.82222223}
+    pivot: {x: 0.33333334, y: 0.8297872}
     alignment: 9
     border: {x: 0, y: 0, z: 0, w: 0}
     customData: 
@@ -185,7 +185,7 @@ ScriptedImporter:
       x: 4
       y: 4
       width: 45
-      height: 45
+      height: 47
     spriteID: 291ed8796dc2cf44bbda53780516a65f
     spriteBone: []
     spriteOutline: []
@@ -214,9 +214,9 @@ ScriptedImporter:
       frameIndex: 0
       additiveSortOrder: 0
       cellRect:
-        x: 18
+        x: 13
         y: 16
-        width: 41
+        width: 46
         height: 39
       spriteId: dd9e1e7a490f97f4681e549677ba65ef
     - name: Frame_1
@@ -225,7 +225,7 @@ ScriptedImporter:
       cellRect:
         x: 40
         y: 16
-        width: 45
+        width: 48
         height: 44
       spriteId: 75a5ef4c8bb54834a817ac4d3eb45545
     - name: Frame_2
@@ -233,9 +233,9 @@ ScriptedImporter:
       additiveSortOrder: 0
       cellRect:
         x: 39
-        y: 2
+        y: 0
         width: 45
-        height: 45
+        height: 47
       spriteId: 291ed8796dc2cf44bbda53780516a65f
     linkedCells: []
     tileCells: []
