@@ -147,7 +147,8 @@ public class PlayerController : MonoBehaviour
         HandleJump();
         
         if (isArmed)
-        {
+        {   
+            AimThrowPointAtMouse();
             HandleCombatInput();
             HandleNormalDashInput();
             HandleBlockingState(); 
@@ -389,15 +390,16 @@ public class PlayerController : MonoBehaviour
 
     private void ThrowSword()
     {
-        isArmed = false; // ปาไปแล้ว สถานะส่วนรวมคือ "มือเปล่า"
-        hasThrownSword = true;
+        isArmed = false;
+        hasThrownSword = true; 
         CharacterSwitcher.Instance.SwitchToUnarmed();
 
-        // สร้างดาบและจดจำมันไว้ในตัวแปรส่วนรวม
         GameObject swordObj = Instantiate(thrownSwordPrefab, throwPoint.position, throwPoint.rotation);
         activeSword = swordObj.GetComponent<ThrownSword>(); 
 
-        Vector2 throwDirection = (Camera.main.ScreenToWorldPoint(Input.mousePosition) - throwPoint.position).normalized;
+        // 🟢 เปลี่ยนจากคำนวณตำแหน่งเมาส์ยาวๆ มาดึง "ทิศทางหน้าของ throwPoint" ได้เลย ง่ายและเป๊ะ!
+        Vector2 throwDirection = throwPoint.right; 
+        
         activeSword.Initialize(throwDirection);
     }
 
@@ -422,6 +424,31 @@ public class PlayerController : MonoBehaviour
         hasThrownSword = false;
         CharacterSwitcher.Instance.SwitchToArmed();
         CameraShake.Instance.StartCoroutine(CameraShake.Instance.Shake(0.15f, 0.1f));
+    }
+    
+    // 🟢 ระบบเล็ง: ทำให้ throwPoint โคจรรอบตัวและชี้ไปหาเมาส์
+    private void AimThrowPointAtMouse()
+    {
+        if (throwPoint == null) return;
+
+        // 1. หาตำแหน่งเมาส์ในโลกของเกม
+        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        mousePos.z = 0f;
+
+        // 2. คำนวณทิศทางจากตัวละครไปหาเมาส์ (สมมติให้จุดหมุนอยู่กลางอกตัวละคร)
+        Vector3 aimDirection = (mousePos - transform.position).normalized;
+
+        // 3. หันหน้า throwPoint ไปหาเมาส์
+        float angle = Mathf.Atan2(aimDirection.y, aimDirection.x) * Mathf.Rad2Deg;
+        throwPoint.rotation = Quaternion.Euler(0, 0, angle);
+
+        // 4. ขยับตำแหน่ง throwPoint ให้เป็นวงกลมรอบๆ ตัวละคร (ไม่ให้เสกดาบซ้อนทับตัว)
+        float orbitRadius = 1.0f; // 👈 ปรับความกว้างของวงโคจรตรงนี้ (ถ้าดาบเสกแล้วติดกำแพงแปลกๆ ให้ลดลงเหลือ 0.8f)
+        
+        // เราสามารถบวกแกน Y นิดนึง เพื่อให้จุดปาอยู่ระดับ "ไหล่" หรือ "อก" แทนที่จะเป็นเท้า
+        Vector3 pivotOffset = new Vector3(0, 0.1f, 0); 
+        
+        throwPoint.position = transform.position + pivotOffset + (aimDirection * orbitRadius);
     }
 
     private Transform FindNearestEnemy()

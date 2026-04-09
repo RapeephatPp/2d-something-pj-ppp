@@ -184,7 +184,7 @@ Transform:
   m_GameObject: {fileID: 7686709608500125704}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -582.17, y: 100.76, z: 0}
+  m_LocalPosition: {x: -575.2, y: 101.2, z: 0}
   m_LocalScale: {x: 5, y: 5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -270,7 +270,7 @@ MonoBehaviour:
   crouchKey: 306
   attackKey: 323
   blockKey: 324
-  isArmed: 0
+  recallKey: 114
   walkSpeed: 6
   crouchSpeed: 3
   acceleration: 10
@@ -301,23 +301,25 @@ MonoBehaviour:
   blockColor: {r: 1, g: 1, b: 1, a: 1}
   armorBreakColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   stunColor: {r: 0, g: 1, b: 1, a: 1}
+  isAttacking: 0
   animator: {fileID: 0}
   comboResetTime: 1.2
-  attackInputBufferTime: 0.4
+  fullComboCooldown: 0.5
   maxHealth: 5
   currentHealth: 0
+  hitboxCombo1: {fileID: 0}
+  hitboxCombo2: {fileID: 0}
+  hitboxCombo3: {fileID: 0}
+  hitboxAir: {fileID: 0}
   attackDamage: 1
-  attackRange: 1.5
-  attackSpeedMultiplier: 0.7
-  baseAttackSwingDuration: 0.5
-  attackCooldownBuffer: 0.2
-  swordAnchor: {fileID: 9134132427500443001}
   enemyLayer:
     serializedVersion: 2
     m_Bits: 128
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 256
+  thrownSwordPrefab: {fileID: 0}
+  throwPoint: {fileID: 0}
 --- !u!61 &5373598469833144271
 BoxCollider2D:
   m_ObjectHideFlags: 0

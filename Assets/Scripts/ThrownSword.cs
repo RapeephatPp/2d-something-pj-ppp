@@ -4,9 +4,9 @@ public class ThrownSword : MonoBehaviour
 {
     [Header("Throw Settings")]
     public float flySpeed = 25f; 
-    public float returnSpeed = 35f; // บินกลับต้องไวกว่าปาไป!
+    public float returnSpeed = 35f; 
     public float embedDepth = 0.5f; 
-    public int throwDamage = 15;    // 🟢 ดาเมจตอนปาอัดหน้าศัตรู
+    public int throwDamage = 15;    
 
     private Rigidbody2D rb;
     private Collider2D col;
@@ -15,10 +15,39 @@ public class ThrownSword : MonoBehaviour
     private Transform playerTarget;
     private PlayerController playerController;
 
+    // 🟢 เพิ่มตัวแปรสำหรับจำขนาดดั้งเดิมของดาบ
+    private Vector3 baseScale; 
+
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<Collider2D>();
+        
+        // 🟢 จำขนาดที่คุณตั้งไว้ใน Inspector ตั้งแต่ตอนเกิด
+        baseScale = transform.localScale; 
+    }
+
+    void Start()
+    {
+        // ตอนดาบเพิ่งเกิด สั่งให้ทะลุผู้เล่นไปก่อน จะได้ไม่กระเด็นชนกันเอง
+        SetPlayerCollision(true); 
+    }
+
+    // 🟢 สร้างฟังก์ชันเปิด/ปิด การทะลุผู้เล่นแบบสั่งได้!
+    private void SetPlayerCollision(bool ignore)
+    {
+        GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
+        foreach(GameObject p in players)
+        {
+            Collider2D[] pCols = p.GetComponents<Collider2D>();
+            foreach(Collider2D pc in pCols)
+            {
+                if (col != null && pc != null)
+                {
+                    Physics2D.IgnoreCollision(col, pc, ignore);
+                }
+            }
+        }
     }
 
     public void Initialize(Vector2 throwDirection)
@@ -26,11 +55,14 @@ public class ThrownSword : MonoBehaviour
         float angle = Mathf.Atan2(throwDirection.y, throwDirection.x) * Mathf.Rad2Deg;
         transform.rotation = Quaternion.Euler(0, 0, angle);
 
+        // 🟢 สลับด้านโดยใช้ขนาดดั้งเดิมของคุณ (ไม่กลายเป็นดาบจิ๋วแล้ว!)
+        float flipY = throwDirection.x < 0 ? -Mathf.Abs(baseScale.y) : Mathf.Abs(baseScale.y);
+        transform.localScale = new Vector3(baseScale.x, flipY, baseScale.z);
+
         rb.gravityScale = 0f;
         rb.linearVelocity = throwDirection * flySpeed;
     }
 
-    // 🟢 ฟังก์ชันใหม่: เรียกดาบกลับ
     public void ReturnToPlayer(Transform player)
     {
         isReturning = true;
@@ -38,30 +70,34 @@ public class ThrownSword : MonoBehaviour
         playerTarget = player;
         playerController = player.GetComponent<PlayerController>();
 
-        // ตั้งค่าฟิสิกส์ให้บินทะลุกำแพงกลับมาได้
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.linearVelocity = Vector2.zero;
-        col.isTrigger = true; // ทะลุทุกอย่างกลับมาหาเรา
+        col.isTrigger = true; 
+        
+        gameObject.layer = LayerMask.NameToLayer("Default"); 
+
+        // 🟢 ตอนเรียกดาบกลับ สั่งให้ทะลุผู้เล่นอีกรอบ จะได้ไม่ไปกระแทกหน้าตัวเอง
+        SetPlayerCollision(true);
     }
 
     void Update()
     {
-        // 🟢 ลอจิกตอนดาบบินกลับเข้ามือ
         if (isReturning && playerTarget != null)
         {
-            // ให้ดาบหมุนชี้หน้าเข้าหาผู้เล่น (เท่ๆ)
             Vector2 dir = (playerTarget.position - transform.position).normalized;
             float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.Euler(0, 0, angle);
 
-            // บินเข้าหาอย่างรวดเร็ว
+            // 🟢 สลับด้านตอนบินกลับ (คงขนาดเดิมไว้)
+            float flipY = dir.x < 0 ? -Mathf.Abs(baseScale.y) : Mathf.Abs(baseScale.y);
+            transform.localScale = new Vector3(baseScale.x, flipY, baseScale.z);
+
             transform.position = Vector2.MoveTowards(transform.position, playerTarget.position, returnSpeed * Time.deltaTime);
 
-            // ถ้าบินมาถึงตัว (ระยะใกล้กว่า 1 Unit) ให้เข้ามือ
             if (Vector2.Distance(transform.position, playerTarget.position) < 1.0f)
             {
                 if (playerController != null) playerController.CatchSword();
-                Destroy(gameObject); // ทำลายตัวเองทิ้ง
+                Destroy(gameObject); 
             }
         }
     }
@@ -76,32 +112,25 @@ public class ThrownSword : MonoBehaviour
         HandleImpact(collision.gameObject);
     }
 
-    // 🟢 รวมลอจิกการชนมาไว้ที่เดียว
     private void HandleImpact(GameObject hitObj)
     {
         if (isStuck || isReturning) return;
+        if (hitObj.CompareTag("Weapon")) return;
 
-        // ไม่สนถ้าชนผู้เล่น หรือ อาวุธด้วยกันเอง
-        if (hitObj.CompareTag("Player") || hitObj.CompareTag("Weapon")) return;
-
-        // 1. ถ้าชนศัตรู
         if (hitObj.CompareTag("Enemy"))
         {
             EnemyBehavior enemy = hitObj.GetComponent<EnemyBehavior>();
             if (enemy != null) enemy.TakeDamage(throwDamage);
-            
-            FallToGround(); // ชนศัตรูเสร็จ ดาบต้องกระเด้งตกพื้น
+            FallToGround(); 
             return;
         }
 
-        // 2. ถ้าชนกำแพง/พื้น (เช็คจาก Layer)
-        if (hitObj.layer == LayerMask.NameToLayer("Ground") || hitObj.layer == LayerMask.NameToLayer("Obstacle"))
+        if (hitObj.layer == LayerMask.NameToLayer("Ground"))
         {
             StickToWall();
         }
         else 
         {
-            // 3. ถ้าชนอย่างอื่นที่ไม่ได้ระบุไว้ ให้ตกพื้น
             FallToGround();
         }
     }
@@ -109,21 +138,27 @@ public class ThrownSword : MonoBehaviour
     private void StickToWall()
     {
         isStuck = true;
-        transform.position += (Vector3)rb.linearVelocity.normalized * embedDepth;
+        transform.position += transform.right * embedDepth;
+        
         rb.linearVelocity = Vector2.zero; 
         rb.angularVelocity = 0f;
         rb.bodyType = RigidbodyType2D.Kinematic;
+
+        gameObject.layer = LayerMask.NameToLayer("Ground");
+
+        // 🟢 พระเอกอยู่ตรงนี้! ยกเลิกการทะลุผู้เล่น ทำให้เราเหยียบดาบที่ปักกำแพงได้แล้ว!
+        SetPlayerCollision(false);
     }
 
-    // 🟢 ฟังก์ชันใหม่: ฟิสิกส์ตอนดาบร่วง
     private void FallToGround()
     {
-        isStuck = true; // ป้องกันไม่ให้โดนชนซ้ำๆ จนเด้งมั่ว
+        isStuck = true; 
         rb.bodyType = RigidbodyType2D.Dynamic;
-        rb.gravityScale = 3f; // ร่วงเร็วๆ หน่อย จะได้ดูมีน้ำหนัก
-        
-        // ให้มันกระเด้งถอยหลังนิดๆ แล้วหมุนติ้วๆ ตกลงพื้น
+        rb.gravityScale = 3f; 
         rb.linearVelocity = new Vector2(rb.linearVelocity.x * -0.3f, 5f); 
         rb.angularVelocity = Random.Range(300f, 700f) * (Random.value > 0.5f ? 1 : -1);
+
+        // ตอนดาบตกพื้น ก็ให้เหยียบได้หรือชนได้ตามปกติ
+        SetPlayerCollision(false);
     }
 }
