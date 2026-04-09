@@ -527,6 +527,27 @@ ScriptedImporter:
     edges: []
     tessellationDetail: 0
     uvTransform: {x: 0, y: 0}
+  - name: Base_Decor_9
+    originalName: 
+    pivot: {x: 0.5, y: 0.5}
+    alignment: 0
+    border: {x: 0, y: 0, z: 0, w: 0}
+    customData: 
+    rect:
+      serializedVersion: 2
+      x: 91
+      y: 101
+      width: 30
+      height: 50
+    spriteID: 17197fe218f95df48b6af11af34408cf
+    spriteBone: []
+    spriteOutline: []
+    vertices: []
+    spritePhysicsOutline: []
+    indices: 
+    edges: []
+    tessellationDetail: 0
+    uvTransform: {x: 0, y: 0}
   tileSetImportData: []
   asepriteLayers:
   - layerIndex: 0
@@ -631,6 +652,15 @@ ScriptedImporter:
         width: 33
         height: 52
       spriteId: ac63245ab5797c64383124916229a829
+    - name: Frame_10
+      frameIndex: 10
+      additiveSortOrder: 0
+      cellRect:
+        x: 26
+        y: 14
+        width: 30
+        height: 50
+      spriteId: cf6a00656e942334a8eec3e406478ec3
     linkedCells: []
     tileCells: []
     tileSetIndex: 0

@@ -844,9 +844,11 @@ MonoBehaviour:
   fallGravityMultiplier: 1.5
   coyoteTime: 0.15
   jumpBufferTime: 0.15
-  normalDashSpeed: 10
+  normalDashSpeed: 15
   normalDashDuration: 0.3
   normalDashCooldown: 1
+  dashDuration: 0.2
+  isInvincible: 0
   dashRange: 15
   dashSpeed: 10
   dashCooldown: 1.5

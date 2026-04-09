@@ -17,6 +17,8 @@ public class PlayerController : MonoBehaviour
     public static bool isArmed = true; 
     private static ThrownSword activeSword;
     public static bool hasThrownSword = false;
+    
+    
 
     [Header("Movement Settings")]
     public float walkSpeed = 6f;
@@ -37,19 +39,26 @@ public class PlayerController : MonoBehaviour
     private float coyoteTimeCounter;
     public float jumpBufferTime = 0.15f;
     private float jumpBufferCounter;
-
-    [Header("Dash Settings")]
-    public float normalDashSpeed = 22f;
-    public float normalDashDuration = 0.2f;
-    public float normalDashCooldown = 1.0f;
-    private float nextNormalDashTime;
-    private bool isNormalDashing;
+    
+    [Header("Dash & I-Frames")]
+    public float dashDuration = 0.2f; // พุ่งนานแค่ไหน (ยิ่งน้อยยิ่งฉับไว)
+    private bool isDashing;
+    private bool canDash = true; // เช็คโควต้าว่าพุ่งกลางอากาศไปหรือยัง
+    private float dashCooldownTimer;
+    
+    // 🟢 ตัวแปรพระเอก: โล่อมตะ
+    public bool isInvincible = false;
 
     public float dashRange = 7f; 
-    public float dashSpeed = 28f;
+    public float dashSpeed = 15f;
     public float dashCooldown = 1.5f;
     private float nextDashTime = 0f;
     private bool isTargetDashing = false;
+    
+    [Header("Dash Trail Settings")]
+    public int trailGhosts = 8;               // จำนวนเงาตอนพุ่ง
+    public float ghostFadeDuration = 0.5f;    // เวลาที่เงาจะค่อยๆ จางหายไป
+    public Color ghostColor = new Color(0.1f, 0.1f, 0.1f, 0.8f); // สีของเงา (ตอนนี้ตั้งเป็นสีดำโปร่งแสง)
 
     [Header("Blocking & Armor Break")]
     public float maxGuardGauge = 100f; 
@@ -135,7 +144,27 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {   
-        if (isTargetDashing || isNormalDashing || isStunned) 
+        if (isDashing) return;
+        if (Input.GetKeyDown(jumpKey)) 
+        {
+            jumpBufferCounter = jumpBufferTime; // เริ่มนับถอยหลัง
+        } 
+        else 
+        {
+            jumpBufferCounter -= Time.deltaTime; // ลดเวลาไปเรื่อยๆ
+        }
+        if (isGrounded) 
+        {
+            coyoteTimeCounter = coyoteTime;
+            canDash = true; // 🟢 สำคัญมาก! เท้าแตะพื้นปุ๊บ รีเซ็ตโควต้าพุ่งกลางอากาศ (Air Dash)
+        } 
+        else 
+        {
+            coyoteTimeCounter -= Time.deltaTime;
+        }
+        
+        
+        if (isTargetDashing || isStunned) 
         {
             CheckGrounded(); 
             HandleStunTimer(); 
@@ -150,21 +179,21 @@ public class PlayerController : MonoBehaviour
         {   
             AimThrowPointAtMouse();
             HandleCombatInput();
-            HandleNormalDashInput();
             HandleBlockingState(); 
         }
         else 
         {
             if (Input.GetKeyDown(recallKey)) RecallSword();
         }
-
+        
+        HandleDashInput();
         HandleInteractInput();
         UpdateAnimations();
     }
 
     private void FixedUpdate()
     {
-        if (isTargetDashing || isNormalDashing || isStunned) return;
+        if (isTargetDashing || isStunned) return;
         ApplyMovementPhysics();
         ApplyBetterGravity();
     }
@@ -208,7 +237,19 @@ public class PlayerController : MonoBehaviour
     }
 
     private void HandleJump()
-    {
+    {   
+        if (jumpBufferCounter > 0f && coyoteTimeCounter > 0f)
+        {
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            
+            // ใช้โควต้ากระโดดไปแล้ว ต้องรีเซ็ตเวลาทิ้งทันที ป้องกันการกระโดดเบิ้ล!
+            jumpBufferCounter = 0f; 
+            coyoteTimeCounter = 0f; 
+            canDoubleJump = true;
+            
+            if (animator != null) animator.SetTrigger("Jump");
+        }
+        
         if (isBlocking) return;
 
         if (Input.GetKeyDown(jumpKey)) jumpBufferCounter = jumpBufferTime;
@@ -238,30 +279,124 @@ public class PlayerController : MonoBehaviour
         if (rb.linearVelocity.y < 0) rb.gravityScale = defaultGravity * fallGravityMultiplier;
         else rb.gravityScale = defaultGravity;
     }
-
-    private void HandleNormalDashInput()
+    
+    private void HandleDashInput()
     {
-        if (isBlocking) return;
-        if (Input.GetKeyDown(normalDashKey) && Time.time >= nextNormalDashTime)
-            StartCoroutine(NormalDashRoutine());
+        dashCooldownTimer -= Time.deltaTime;
+
+        // ถ้ากด Shift + พุ่งได้ + คูลดาวน์เสร็จแล้ว
+        if (Input.GetKeyDown(normalDashKey) && canDash && dashCooldownTimer <= 0)
+        {
+            StartCoroutine(DashRoutine());
+        }
     }
 
-    private IEnumerator NormalDashRoutine()
+    private IEnumerator DashRoutine()
     {
-        isNormalDashing = true;
-        nextNormalDashTime = Time.time + normalDashCooldown;
+        isDashing = true;
+        canDash = false; 
+        isInvincible = true; 
         
+        SetEnemyCollision(true);
+
         float originalGravity = rb.gravityScale;
         rb.gravityScale = 0f;
-        
-        float dashDirection = Mathf.Sign(transform.localScale.x);
-        rb.linearVelocity = new Vector2(dashDirection * normalDashSpeed, 0f);
 
-        yield return new WaitForSeconds(normalDashDuration);
+        float dashDirection = Mathf.Sign(transform.localScale.x); 
+        float inputX = Input.GetAxisRaw("Horizontal");
+        if (inputX != 0) dashDirection = Mathf.Sign(inputX);
+
+        rb.linearVelocity = new Vector2(dashDirection * dashSpeed, 0f);
+
+        // 🟢 เปลี่ยนวิธีนับเวลา เพื่อให้สั่งเสกเงาได้ระหว่างพุ่ง!
+        float ghostSpawnInterval = dashDuration / trailGhosts; 
+        float ghostTimer = 0f;
+        float dashTime = 0f;
+
+        while (dashTime < dashDuration)
+        {
+            dashTime += Time.deltaTime;
+            ghostTimer -= Time.deltaTime;
+
+            // ถ้าถึงจังหวะเวลา ให้เสกเงา 1 ตัว
+            if (ghostTimer <= 0)
+            {
+                SpawnDashGhost();
+                ghostTimer = ghostSpawnInterval; // รีเซ็ตเวลารอเสกตัวถัดไป
+            }
+            yield return null; // รอขยับเฟรมถัดไป
+        }
 
         rb.gravityScale = originalGravity;
-        rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y); 
-        isNormalDashing = false;
+        isDashing = false;
+        isInvincible = false; 
+        dashCooldownTimer = dashCooldown;
+
+        rb.linearVelocity = new Vector2(rb.linearVelocity.x * 0.3f, rb.linearVelocity.y);
+        
+        SetEnemyCollision(false);
+    }
+    
+    // 🟢 ฟังก์ชันสร้างเงาทิ้งไว้ ณ ตำแหน่งปัจจุบัน
+    private void SpawnDashGhost()
+    {
+        if (spriteRenderer == null) return;
+
+        // 1. สร้าง Object เปล่าๆ ขึ้นมากลางอากาศ
+        GameObject ghostObj = new GameObject("DashGhost");
+        ghostObj.transform.position = transform.position;
+        ghostObj.transform.localScale = transform.localScale;
+        ghostObj.transform.rotation = transform.rotation;
+
+        // 2. ก๊อปปี้ภาพ Sprite และตั้งค่าสีดำทมิฬ
+        SpriteRenderer ghostSprite = ghostObj.AddComponent<SpriteRenderer>();
+        ghostSprite.sprite = spriteRenderer.sprite; // ถ่ายรูปท่าทางปัจจุบันเป๊ะๆ
+        ghostSprite.color = ghostColor;
+        ghostSprite.sortingLayerID = spriteRenderer.sortingLayerID;
+        ghostSprite.sortingOrder = spriteRenderer.sortingOrder - 1; // ให้อยู่หลังตัวผู้เล่น
+
+        // 3. สั่งทำลายตัวเองล่วงหน้า (กันเหนียว เผื่อเกมบั๊กจะได้ไม่รกฉาก)
+        Destroy(ghostObj, ghostFadeDuration + 0.1f);
+
+        // 4. สั่งให้เงาคอยๆ จางหายไปอย่างนุ่มนวล
+        StartCoroutine(FadeGhostRoutine(ghostSprite, ghostFadeDuration));
+    }
+
+    // 🟢 ฟังก์ชันทำให้เงาค่อยๆ จางหายไป (Fade Out)
+    private IEnumerator FadeGhostRoutine(SpriteRenderer ghost, float fadeTime)
+    {
+        float elapsed = 0f;
+        Color startColor = ghost.color;
+
+        while (elapsed < fadeTime)
+        {
+            if (ghost == null) yield break; // ถ้าเงาโดนทำลายไปแล้ว ให้หยุดทำงานทันที
+            
+            elapsed += Time.deltaTime;
+            float alpha = Mathf.Lerp(startColor.a, 0f, elapsed / fadeTime);
+            ghost.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
+            
+            yield return null;
+        }
+    }
+    
+    // 🟢 ฟังก์ชันสั่งให้ตัวผู้เล่นทะลุศัตรูได้แบบผี!
+    private void SetEnemyCollision(bool ignore)
+    {
+        Collider2D myCol = GetComponent<Collider2D>();
+        if (myCol == null) return;
+
+        // ค้นหาศัตรูทั้งหมดในฉาก (ที่ติด Tag ว่า "Enemy")
+        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
+        foreach (GameObject enemy in enemies)
+        {
+            Collider2D[] enemyCols = enemy.GetComponents<Collider2D>();
+            foreach (Collider2D eCol in enemyCols)
+            {
+                // สั่งให้กล่องของเรา เมินกล่องของศัตรู
+                Physics2D.IgnoreCollision(myCol, eCol, ignore);
+            }
+        }
     }
     
     public void ChangeAnimator(Animator newAnimator) { animator = newAnimator; }
@@ -612,8 +747,9 @@ public class PlayerController : MonoBehaviour
     }
 
     public void TakeDamage(int damage)
-    {
-        isNormalDashing = false;
+    {   
+        if (isInvincible) return;
+        
         isTargetDashing = false;
         if (rb != null) rb.gravityScale = defaultGravity; 
 
