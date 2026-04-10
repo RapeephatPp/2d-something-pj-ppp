@@ -180,7 +180,7 @@ Transform:
   m_GameObject: {fileID: 1281235893630379350}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: -0.071, y: -0.189, z: 0}
+  m_LocalPosition: {x: -0.071, y: -0.0566, z: 0}
   m_LocalScale: {x: 0.2, y: 0.2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -521,7 +521,7 @@ Transform:
   m_GameObject: {fileID: 3337109714129316891}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.068, y: -0.223, z: 0}
+  m_LocalPosition: {x: -0.068, y: -0.2226, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -727,6 +727,7 @@ GameObject:
   - component: {fileID: 8844600889642850822}
   - component: {fileID: 5964471946736320461}
   - component: {fileID: 7069345563406298682}
+  - component: {fileID: 1116306407342007422}
   m_Layer: 6
   m_Name: Player
   m_TagString: Player
@@ -831,7 +832,7 @@ MonoBehaviour:
   interactKey: 101
   normalDashKey: 304
   targetDashKey: 102
-  crouchKey: 306
+  crouchKey: 115
   attackKey: 323
   blockKey: 324
   recallKey: 114
@@ -844,14 +845,14 @@ MonoBehaviour:
   fallGravityMultiplier: 1.5
   coyoteTime: 0.15
   jumpBufferTime: 0.15
-  normalDashSpeed: 15
-  normalDashDuration: 0.3
-  normalDashCooldown: 1
   dashDuration: 0.2
   isInvincible: 0
   dashRange: 15
   dashSpeed: 10
   dashCooldown: 1.5
+  trailGhosts: 8
+  ghostFadeDuration: 0.5
+  ghostColor: {r: 0.1, g: 0.1, b: 0.1, a: 0.8}
   maxGuardGauge: 50
   currentGuardGauge: 0
   blockDamageReduction: 0.5
@@ -893,7 +894,7 @@ BoxCollider2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7386662849734993561}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Density: 1
   m_Material: {fileID: 0}
@@ -981,3 +982,40 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!70 &1116306407342007422
+CapsuleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7386662849734993561}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: -0.06170044, y: -0.06683884}
+  m_Size: {x: 0.1998413, y: 0.3725052}
+  m_Direction: 0

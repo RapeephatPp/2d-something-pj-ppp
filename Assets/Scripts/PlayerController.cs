@@ -77,6 +77,9 @@ public class PlayerController : MonoBehaviour
     public float groundCheckRadius = 0.25f;
     public LayerMask groundLayer;
     private bool isGrounded;
+    
+    private GameObject currentOneWayPlatform;
+    private bool isDropping = false; // 🟢 ตัวแปรบอกว่ากำลังร่วง (เพื่อสั่งปิดเบรกมือชั่วคราว)
 
     [Header("Visual Effects")]
     public Color blockColor = Color.blue;
@@ -193,9 +196,28 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (isTargetDashing || isStunned) return;
+        if (isTargetDashing || isStunned) 
+        {
+            // 🟢 ปลดล็อคเสมอเวลาโดนตีหรือพุ่ง เพื่อให้กระเด็นได้ตามปกติ
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+            return;
+        }
+
         ApplyMovementPhysics();
         ApplyBetterGravity();
+
+        // 🟢 ระบบดึงเบรกมือ: กันไถลบนทางลาดชัน
+        // ถ้ายืนอยู่บนพื้น + ไม่ได้กดปุ่มเดิน + ไม่ได้กำลังฟันดาบ
+        if (isGrounded && moveInputX == 0 && !isAttacking && !isDropping)
+        {
+            // ล็อคแกน X ไว้เลย (แต่ยังร่วงแกน Y ได้ปกติถ้าพื้นหาย)
+            rb.constraints = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezeRotation;
+        }
+        else
+        {
+            // ถ้าขยับตัว หรือกระโดด ก็ปลดล็อคแกน X ให้เดินได้ลื่นๆ
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+        }
     }
 
     private void HandleInput()
@@ -227,17 +249,50 @@ public class PlayerController : MonoBehaviour
 
     private void CheckGrounded()
     {
-        isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
+        // 🟢 ดึงข้อมูลของพื้นที่เราเหยียบอยู่มาเช็ค
+        Collider2D hitCollider = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
+        isGrounded = hitCollider != null;
+
         if (isGrounded)
         {
             coyoteTimeCounter = coyoteTime;
             canDoubleJump = true;
+            canDash = true;
+
+            // 🟢 เช็คว่าพื้นที่เหยียบอยู่ มี PlatformEffector2D ไหม (ถ้ามีแปลว่าเป็น One-Way)
+            if (hitCollider.GetComponent<PlatformEffector2D>() != null)
+            {
+                currentOneWayPlatform = hitCollider.gameObject;
+            }
+            else
+            {
+                currentOneWayPlatform = null;
+            }
         }
-        else coyoteTimeCounter -= Time.deltaTime;
+        else 
+        {
+            coyoteTimeCounter -= Time.deltaTime;
+            currentOneWayPlatform = null;
+        }
     }
 
     private void HandleJump()
     {   
+        if (isGrounded && Input.GetKey(crouchKey) && Input.GetKeyDown(jumpKey))
+        {
+            if (currentOneWayPlatform != null)
+            {
+                // 🟢 ดึงเวทมนตร์ Effector 2D ของบันไดออกมา
+                PlatformEffector2D effector = currentOneWayPlatform.GetComponent<PlatformEffector2D>();
+                if (effector != null)
+                {
+                    jumpBufferCounter = 0f; 
+                    StartCoroutine(FallThroughRoutine(effector)); // ส่งไปให้ฟังก์ชันด้านล่าง
+                    return; 
+                }
+            }
+        }
+        
         if (jumpBufferCounter > 0f && coyoteTimeCounter > 0f)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
@@ -272,6 +327,28 @@ public class PlayerController : MonoBehaviour
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * jumpCutMultiplier);
         }
+    }
+    
+    // 🟢 ระบบปลดล็อคการชนชั่วคราว ให้ร่วงลงมาได้ (เวอร์ชันอัปเกรด)
+    // 🟢 เปลี่ยนมารับค่า PlatformEffector2D แทน
+    private IEnumerator FallThroughRoutine(PlatformEffector2D effector)
+    {
+        isDropping = true; // ปลดเบรกมือทันที!
+        
+        float originalOffset = effector.rotationalOffset;
+        
+        // 1. สั่ง "พลิก" หน้าพื้นให้หันลงล่าง (ตัวเราจะร่วงทะลุพื้นนั้นทันที 100%)
+        effector.rotationalOffset = 180f;
+        
+        // 2. ออกแรงกระชากตัวละครลงพื้นนิดนึง ให้หลุดจากทางลาดชัวร์ๆ
+        rb.linearVelocity = new Vector2(rb.linearVelocity.x, -2f);
+        
+        // 3. รอให้ร่วงพ้นพื้น (ใช้เวลาแค่แป๊บเดียวพอ)
+        yield return new WaitForSeconds(0.4f);
+        
+        // 4. พลิกพื้นกลับมาเป็นปกติ และให้เบรกมือกลับมาทำงาน
+        if (effector != null) effector.rotationalOffset = originalOffset;
+        isDropping = false; 
     }
 
     private void ApplyBetterGravity()

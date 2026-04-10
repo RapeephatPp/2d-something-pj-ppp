@@ -148,7 +148,7 @@ Transform:
   m_GameObject: {fileID: 5054224023479068802}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.068, y: -0.2414, z: 0}
+  m_LocalPosition: {x: -0.0401, y: -0.2207, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -168,6 +168,7 @@ GameObject:
   - component: {fileID: 5373598469833144271}
   - component: {fileID: 7720628781297781979}
   - component: {fileID: 6052132129778559332}
+  - component: {fileID: 6653848660093994333}
   m_Layer: 6
   m_Name: Maris
   m_TagString: Player
@@ -280,12 +281,14 @@ MonoBehaviour:
   fallGravityMultiplier: 1.5
   coyoteTime: 0.15
   jumpBufferTime: 0.15
-  normalDashSpeed: 5
-  normalDashDuration: 0.2
-  normalDashCooldown: 1
+  dashDuration: 0.2
+  isInvincible: 0
   dashRange: 15
   dashSpeed: 10
   dashCooldown: 1.5
+  trailGhosts: 8
+  ghostFadeDuration: 0.5
+  ghostColor: {r: 0.1, g: 0.1, b: 0.1, a: 0.8}
   maxGuardGauge: 50
   currentGuardGauge: 0
   blockDamageReduction: 0.5
@@ -327,7 +330,7 @@ BoxCollider2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7686709608500125704}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Density: 1
   m_Material: {fileID: 0}
@@ -415,3 +418,40 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!70 &6653848660093994333
+CapsuleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7686709608500125704}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: -0.049053956, y: -0.05457077}
+  m_Size: {x: 0.16080323, y: 0.3438278}
+  m_Direction: 0
