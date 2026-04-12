@@ -35,11 +35,27 @@ public class EnemyBehavior : MonoBehaviour
     private float spawnTime; // 🟢 เก็บเวลาตอนที่เกิดมา
     public float gracePeriod = 1.5f; // 🟢 เวลาตั้งตัว (วินาที) ที่จะไม่สนใจผู้เล่น
     
+    [Header("Passive AI Enhancements")]
+    public GameObject alertIcon;        // 🟢 ลากรูประฆัง/เครื่องหมายตกใจมาใส่ช่องนี้
+    public LayerMask obstacleLayer;     // 🟢 เลเยอร์ที่เป็นกำแพง/พื้น (เอาไว้เช็คทางตัน)
+    public float wallCheckDist = 1f;    // 🟢 ระยะยิงเรดาร์เช็คกำแพง
+    public float panicDuration = 5f;
+    
     private Transform safeZone;               // จุดเกิด/จุดหนีกลับ
+    private Vector2 startPosition;
     private Vector2 wanderTarget;
     private float wanderTimer;
     private bool isFleeingToSafeZone = false;
     private bool hasRolledFleeChance = false; // เช็คเพื่อไม่ให้ทอยเต๋าซ้ำทุกเฟรม
+    
+    private float panicTimer = 0f;           // เอาไว้จับเวลาหนี
+    private float currentFleeDirection = 1f; // ็อคทิศทางการวิ่งหนี จะได้ไม่สั่น
+    private bool isCornered = false;
+    private float corneredTimer = 0f;
+    private bool isChatting = false;
+    private float chatTimer = 0f;
+    private EnemyBehavior chatPartner = null;
+    private bool isAlerted = false;
 
     [Header("Combat Settings")]
     public GameObject projectilePrefab; // กระสุนสำหรับ Range/Fly
@@ -98,6 +114,7 @@ public class EnemyBehavior : MonoBehaviour
     {   
         spawnTime = Time.time;
         currentHealth = maxHealth;
+        startPosition = transform.position;
         
         if (player == null)
         {
@@ -132,16 +149,12 @@ public class EnemyBehavior : MonoBehaviour
         {
             GameObject activePlayer = GameObject.FindGameObjectWithTag("Player");
             if (activePlayer != null) player = activePlayer.transform;
-            else return; // ถ้าหาผู้เล่นไม่เจอเลย ให้หยุดทำงานเฟรมนี้ไปก่อน
+            else return; 
         }
         
-        if (!isLunging && !isRetreating && !isPreparingMelee)
-        {
-            SeparateFromOtherEnemies();
-        }
-
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
 
+        // 1. ให้มันคิดพฤติกรรมการเดินปกติก่อน
         switch (type)
         {
             case EnemyType.Passive: HandlePassive(distanceToPlayer); break;
@@ -150,6 +163,20 @@ public class EnemyBehavior : MonoBehaviour
             case EnemyType.FlyingHostile: HandleFlyingHostile(distanceToPlayer); break;
             case EnemyType.StationaryTarget: break;
             case EnemyType.BigChaser: HandleBigChaser(); break;
+        }
+
+        // 🟢 2. [ย้ายมาไว้ตรงนี้!] พอเดินเสร็จปุ๊บ ค่อยมาเช็คว่าเดินทับเพื่อนไหม ถ้าทับให้ดีดออกทันที
+        bool shouldSeparate = true;
+        if (type == EnemyType.Passive)
+        {
+            // ถ้าเป็นตัว Passive ให้ผลักกัน "เฉพาะตอนกำลังหนีตกใจ" เท่านั้น
+            // เวลาเดินเล่นปกติจะได้เดินทะลุซ้อนกันได้
+            shouldSeparate = isAlerted || isFleeingToSafeZone; 
+        }
+
+        if (shouldSeparate && !isLunging && !isRetreating && !isPreparingMelee)
+        {
+            SeparateFromOtherEnemies();
         }
     }
     
@@ -161,17 +188,19 @@ public class EnemyBehavior : MonoBehaviour
         {
             if (col.gameObject != gameObject && col.CompareTag("Enemy"))
             {
-                // ดันตัวเราออกไปในทิศทางตรงข้ามกับเพื่อน
+                // ดูว่าเพื่อนอยู่ฝั่งไหน
                 float dirX = Mathf.Sign(transform.position.x - col.transform.position.x);
                 
-                // ถ้าบังเอิญเกิดมาซ้อนกันเป๊ะๆ (X เท่ากัน) ให้สุ่มเด้งซ้ายขวา
-                if (Mathf.Abs(transform.position.x - col.transform.position.x) < 0.05f) 
+                // ถ้าเกิดมาทับกันเป๊ะๆ ระดับมิลลิเมตร ให้สุ่มดีดคนละฝั่ง
+                if (Mathf.Abs(transform.position.x - col.transform.position.x) < 0.1f) 
                 {
                     dirX = Random.Range(0, 2) == 0 ? 1f : -1f;
                 }
                 
-                Vector2 pushTarget = new Vector2(transform.position.x + dirX, transform.position.y);
-                transform.position = Vector2.MoveTowards(transform.position, pushTarget, separationForce * Time.deltaTime);
+                // 🟢 [อัปเกรด!] ใช้การ "บวกตำแหน่ง" (+ Vector3) ทับเข้าไปเลย 
+                // แบบนี้ต่อให้กำลังเดินอยู่ มันก็จะถูกไถออกข้างๆ อย่างเนียนๆ!
+                Vector3 pushVector = new Vector3(dirX * separationForce * Time.deltaTime, 0, 0);
+                transform.position += pushVector;
             }
         }
     }
@@ -186,100 +215,169 @@ public class EnemyBehavior : MonoBehaviour
 
     void HandlePassive(float distance)
     {
-        // 1. ถ้ากำลังวิ่งกลับจุดเซฟ
-        if (isFleeingToSafeZone && safeZone != null)
-        {
-            // 🟢 ระบบ AI ตาไว: เช็คว่าผู้เล่น "ขวางทาง" อยู่ระหว่างตัว NPC กับหลุมหรือไม่?
-            float distToPlayerX = player.position.x - transform.position.x;
-            float distToSafeX = safeZone.position.x - transform.position.x;
-            
-            // ถ้าผู้เล่นยืนอยู่ฝั่งเดียวกับหลุม แถมอยู่ใกล้เรามากกว่าหลุม แปลว่าขวางทางเต็มๆ!
-            bool isPlayerInWay = (Mathf.Sign(distToPlayerX) == Mathf.Sign(distToSafeX)) && 
-                                 (Mathf.Abs(distToPlayerX) < Mathf.Abs(distToSafeX));
-
-            // ถ้าขวางทาง และอยู่ใกล้เกินไป (ระยะ 3 หน่วย)
-            if (isPlayerInWay && distance < 3f)
-            {
-                // เลิกหน้ามืดตามัวกลับหลุมชั่วคราว วิ่งหนีเอาชีวิตรอดไปทิศตรงข้ามแทน!
-                MoveAwayFromPlayer();
-                return; 
-            }
-
-            // ถ้าไม่มีคนขวาง ก็วิ่งกลับหลุมปกติ (ล็อคแกน Y ให้เดินติดพื้นด้วย)
-            Vector2 targetPosition = new Vector2(safeZone.position.x, transform.position.y);
-            transform.position = Vector2.MoveTowards(transform.position, targetPosition, speed * 1.5f * Time.deltaTime);
-            FlipSprite(safeZone.position.x);
-
-            // วิ่งถึงหลุมแล้ว มุดลงดิน (Destroy)
-            if (Mathf.Abs(transform.position.x - safeZone.position.x) < 0.2f)
-            {
-                Destroy(gameObject); 
-            }
-            return; 
-        }
-
-        // 2. ช่วงเวลาตั้งตัวตอนเพิ่งเกิด
-        if (Time.time - spawnTime < gracePeriod)
-        {
-            WanderAroundSafeZone();
-            return;
-        }
-
-        // ดึงสถานะถือดาบมาจาก PlayerController ของคุณ
         bool playerHasSword = PlayerController.isArmed; 
+        bool isScared = distance <= detectionRange && playerHasSword;
 
-        // 3. ถ้าเจอผู้เล่นถือดาบ
-        if (distance <= detectionRange && playerHasSword)
+        // 🟢 1. ระบบตกใจเริ่มทำงาน
+        if (isScared && !isAlerted)
         {
-            // ทอยเต๋า 1 ครั้งว่าจะหนีกลับหลุมไหม
-            if (!hasRolledFleeChance)
-            {
-                hasRolledFleeChance = true; 
-                if (Random.value <= fleeToSafeZoneChance && safeZone != null)
-                {
-                    isFleeingToSafeZone = true;
-                    return;
-                }
-            }
+            isAlerted = true;
+            isChatting = false; 
             
-            // ถ้าไม่กลับหลุม (หรือไม่มีหลุม) ก็ให้วิ่งหนีไปทางตรงข้าม
-            MoveAwayFromPlayer();
+            // ล็อคทิศทางให้วิ่งไปฝั่งตรงข้ามผู้เล่น ทันทีที่ตกใจ!
+            currentFleeDirection = Mathf.Sign(transform.position.x - player.position.x);
+            if (currentFleeDirection == 0) currentFleeDirection = 1f;
+            
+            StartCoroutine(ShowAlertIcon());
         }
-        else 
+
+        // รีเฟรชเวลาหนีเรื่อยๆ ถ้าผู้เล่นยังตามติดอยู่ในระยะ
+        if (isScared) 
         {
-            if (distance > detectionRange)
+            panicTimer = panicDuration;
+        }
+
+        // 🟢 2. โหมดลดความกลัว (ถ้าวิ่งหนีจนพ้นระยะแล้ว)
+        if (panicTimer > 0 && !isScared)
+        {
+            panicTimer -= Time.deltaTime;
+            if (panicTimer <= 0) 
             {
-                hasRolledFleeChance = false; // รีเซ็ตการตัดสินใจ
+                isAlerted = false; // เลิกตกใจ กลับไปเดินชิล
+            }
+        }
+
+        // 🟢 3. โหมดหนีตาย (หนีเพราะแพนิคอยู่ หรือกำลังหนีกลับหลุม)
+        if (panicTimer > 0 || isFleeingToSafeZone)
+        {
+            if (animator != null) animator.SetBool("isMoving", true);
+
+            if (safeZone != null && (isFleeingToSafeZone || (!hasRolledFleeChance && RollFleeToSafeZone())))
+            {
+                Vector2 targetPos = new Vector2(safeZone.position.x, transform.position.y);
+                transform.position = Vector2.MoveTowards(transform.position, targetPos, speed * 1.5f * Time.deltaTime);
+                FlipSprite(safeZone.position.x);
+
+                if (Mathf.Abs(transform.position.x - safeZone.position.x) < 0.2f) Destroy(gameObject); 
+                return;
             }
             
-            // 4. เดินเล่นแบบชิลๆ
-            WanderAroundSafeZone();
+            // หนีแบบธรรมดา
+            SmartFleeFromPlayer();
+        }
+        // 🟢 4. โหมดชิล (เดินเล่น / คุย)
+        else
+        {
+            hasRolledFleeChance = false;
+            if (Time.time - spawnTime < gracePeriod) return; 
+
+            if (isChatting) HandleChatting();
+            else WanderAndLookForFriends();
         }
     }
 
-    void WanderAroundSafeZone()
+    bool RollFleeToSafeZone()
     {
-        if (safeZone == null) return;
+        hasRolledFleeChance = true;
+        if (Random.value <= fleeToSafeZoneChance)
+        {
+            isFleeingToSafeZone = true;
+            return true;
+        }
+        return false;
+    }
+
+    void SmartFleeFromPlayer()
+    {
+        // 🟢 อัปเกรด: ใช้ทิศทางเดิม (currentFleeDirection) ที่ล็อคไว้ตอนตกใจ 
+        // ไม่ต้องคำนวณตำแหน่งผู้เล่นใหม่ตลอดเวลา มันจะได้ไม่สับสนเวลาวิ่งทะลุตัวผู้เล่น!
+        
+        Vector2 rayOrigin = new Vector2(transform.position.x, transform.position.y + 0.5f);
+        RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.right * currentFleeDirection, wallCheckDist, obstacleLayer);
+        
+        if (hit.collider != null)
+        {
+            // ถ้าชนกำแพงปุ๊บ ให้หันหลังกลับ 180 องศา แล้ววิ่งหน้าตั้งต่อไปเลย
+            currentFleeDirection = -currentFleeDirection; 
+        }
+
+        Vector2 targetPos = new Vector2(transform.position.x + (currentFleeDirection * 5f), transform.position.y);
+        transform.position = Vector2.MoveTowards(transform.position, targetPos, (speed * 1.5f) * Time.deltaTime);
+        FlipSprite(targetPos.x);
+    }
+
+    // 🟢 ระบบเดินเล่นหาเพื่อน
+    void WanderAndLookForFriends()
+    {
+        // 🟢 ถ้าไม่มีหลุม SafeZone ให้ใช้ตำแหน่งเริ่มต้นตอนวางในฉาก เป็นศูนย์กลางแทน! (แก้บั๊กยืนนิ่ง)
+        Vector2 centerPoint = safeZone != null ? (Vector2)safeZone.position : startPosition;
+        
+        if (animator != null) animator.SetBool("isMoving", true);
 
         wanderTimer -= Time.deltaTime;
-        
-        // 🟢 เปลี่ยนมาเช็คระยะห่างเฉพาะแกน X ว่าเดินถึงจุดหมายหรือยัง
         if (wanderTimer <= 0 || Mathf.Abs(transform.position.x - wanderTarget.x) < 0.1f)
         {
-            // 🟢 แก้ไข: สุ่มเฉพาะซ้าย-ขวา (แกน X) เท่านั้น ไม่สุ่มแกน Y
             float randomX = Random.Range(-wanderRadius, wanderRadius);
-            
-            // จุดหมายใหม่ = X ของจุดเกิด + ค่าที่สุ่มได้, ส่วน Y ใช้ความสูงเดิมของตัวมันเอง
-            wanderTarget = new Vector2(safeZone.position.x + randomX, transform.position.y);
-            
+            wanderTarget = new Vector2(centerPoint.x + randomX, transform.position.y);
             wanderTimer = Random.Range(wanderInterval, wanderInterval + 2f);
         }
 
-        // ค่อยๆ เดินไปซ้ายขวาตามจุดหมาย โดยบังคับให้แกน Y เป็นความสูงระดับเดิมเสมอ
         Vector2 targetPosition = new Vector2(wanderTarget.x, transform.position.y);
         transform.position = Vector2.MoveTowards(transform.position, targetPosition, (speed * 0.5f) * Time.deltaTime);
-        
         FlipSprite(wanderTarget.x);
+
+        // เช็คว่ามีเพื่อน Passive อยู่ใกล้ๆ ไหม
+        Collider2D[] others = Physics2D.OverlapCircleAll(transform.position, 1.5f);
+        foreach (Collider2D col in others)
+        {
+            if (col.gameObject != gameObject && col.CompareTag("Enemy"))
+            {
+                EnemyBehavior friend = col.GetComponent<EnemyBehavior>();
+                if (friend != null && friend.type == EnemyType.Passive && !friend.isChatting && !friend.isAlerted)
+                {
+                    // ถ้าเดินมาเจอกัน มีโอกาสทักทายกัน
+                    if (Random.value < 0.05f) 
+                    {
+                        StartChatting(friend);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    public void StartChatting(EnemyBehavior partner)
+    {
+        isChatting = true;
+        chatPartner = partner;
+        chatTimer = Random.Range(2f, 4f); // สุ่มเวลายืนคุยกัน 2-4 วินาที
+        
+        FlipSprite(partner.transform.position.x); // หันหน้าเข้าหากัน
+        if (!partner.isChatting) partner.StartChatting(this); // บังคับให้เพื่อนคุยด้วย
+    }
+
+    void HandleChatting()
+    {
+        if (animator != null) animator.SetBool("isMoving", false); // หยุดเดินและยืนคุย
+        chatTimer -= Time.deltaTime;
+
+        if (chatTimer <= 0 || chatPartner == null || isAlerted)
+        {
+            isChatting = false;
+            chatPartner = null;
+            wanderTimer = 0; // เลิกคุยแล้วเดินไปที่อื่นต่อ
+        }
+    }
+
+    // 🟢 เอฟเฟกต์โชว์เครื่องหมายตกใจ
+    IEnumerator ShowAlertIcon()
+    {
+        if (alertIcon != null)
+        {
+            alertIcon.SetActive(true);
+            yield return new WaitForSeconds(1.0f); // โชว์ค้างไว้ 1 วินาที
+            alertIcon.SetActive(false);
+        }
     }
 
     void HandleMeleeHostile(float distance)
