@@ -33,13 +33,17 @@ public class CharacterSwitcher : MonoBehaviour
     {
         if (isArmed) return;
 
+        // 🟢 ก๊อปปี้เลือดจากตัวมือเปล่า ไปให้ตัวถือดาบ
+        PlayerController unarmedPC = unarmedPlayer.GetComponent<PlayerController>();
+        PlayerController armedPC = armedPlayer.GetComponent<PlayerController>();
+        if (unarmedPC != null && armedPC != null) armedPC.currentHealth = unarmedPC.currentHealth;
+
         armedPlayer.transform.position = unarmedPlayer.transform.position;
         armedPlayer.transform.localScale = unarmedPlayer.transform.localScale;
 
         unarmedPlayer.SetActive(false);
         armedPlayer.SetActive(true);
 
-        // 🟢 บอก PlayerController ว่า "เปลี่ยนไปใช้ Animator ตัวถือดาบนะ!"
         if (playerController != null && armedAnimator != null) 
             playerController.ChangeAnimator(armedAnimator);
 
@@ -53,13 +57,17 @@ public class CharacterSwitcher : MonoBehaviour
     {
         if (!isArmed) return;
 
+        // 🟢 ก๊อปปี้เลือดจากตัวถือดาบ ไปให้ตัวมือเปล่า
+        PlayerController unarmedPC = unarmedPlayer.GetComponent<PlayerController>();
+        PlayerController armedPC = armedPlayer.GetComponent<PlayerController>();
+        if (unarmedPC != null && armedPC != null) unarmedPC.currentHealth = armedPC.currentHealth;
+
         unarmedPlayer.transform.position = armedPlayer.transform.position;
         unarmedPlayer.transform.localScale = armedPlayer.transform.localScale;
 
         armedPlayer.SetActive(false);
         unarmedPlayer.SetActive(true);
 
-        // 🟢 บอก PlayerController ว่า "เปลี่ยนไปใช้ Animator ตัวมือเปล่านะ!"
         if (playerController != null && unarmedAnimator != null) 
             playerController.ChangeAnimator(unarmedAnimator);
 
@@ -68,7 +76,7 @@ public class CharacterSwitcher : MonoBehaviour
         if (cameraFollow != null) cameraFollow.target = unarmedPlayer.transform;
         isArmed = false;
     }
-
+    
     private void ForceUnarmed()
     {
         unarmedPlayer.SetActive(true);

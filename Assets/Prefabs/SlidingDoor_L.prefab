@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 5524119832253765136}
   - component: {fileID: 7354613661804187087}
   - component: {fileID: 3807444563778981812}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: SlidingDoor_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}

@@ -3,6 +3,7 @@ using UnityEngine;
 public class Lever : MonoBehaviour
 {
     public GameObject lockedGate; // ลากประตูมาใส่ช่องนี้
+    public LaserTrap targetLaser;
     private bool isPlayerNear = false;
     private bool isUsed = false;
 
@@ -15,8 +16,10 @@ public class Lever : MonoBehaviour
             lockedGate.SetActive(false); // ปิดประตู (ทำให้ประตูหายไป)
             Debug.Log("Gate Opened!");
             // จะเปลี่ยนสีสวิตช์ตรงนี้ก็ได้ให้รู้ว่ากดแล้ว
-            GetComponent<SpriteRenderer>().color = Color.gray; 
+            GetComponent<SpriteRenderer>().color = Color.gray;
+            if (targetLaser != null) targetLaser.TurnOffLaser();
         }
+        
     }
 
     private void OnTriggerEnter2D(Collider2D collision)

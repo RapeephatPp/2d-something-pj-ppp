@@ -18,8 +18,6 @@ public class PlayerController : MonoBehaviour
     private static ThrownSword activeSword;
     public static bool hasThrownSword = false;
     
-    
-
     [Header("Movement Settings")]
     public float walkSpeed = 6f;
     public float crouchSpeed = 3f; 
@@ -120,6 +118,8 @@ public class PlayerController : MonoBehaviour
     [Header("Sword Throw Mechanics")]
     public GameObject thrownSwordPrefab; 
     public Transform throwPoint;         
+    public float throwCooldown = 1.0f;    // เวลาคูลดาวน์หลังรับดาบกลับมา
+    private static float nextThrowTime = 0f;     // ตัวจับเวลา
 
     private Camera mainCam; 
 
@@ -482,7 +482,7 @@ public class PlayerController : MonoBehaviour
     {
         if (Input.GetKey(blockKey) && Input.GetKeyDown(attackKey))
         {
-            if (isArmed) ThrowSword(); 
+            if (isArmed && Time.time >= nextThrowTime) ThrowSword(); 
             return;
         }
         
@@ -632,10 +632,14 @@ public class PlayerController : MonoBehaviour
     // 🟢 ฟังก์ชันนี้ดาบจะเป็นคนเรียกใช้ตอนที่มันบินมาถึงตัวเราแล้ว
     public void CatchSword()
     {
-        isArmed = true; // ดาบเข้ามือแล้ว สถานะส่วนรวมคือ "ถือดาบ"
+        isArmed = true; 
         hasThrownSword = false;
+        
+        // 🟢 ตั้งค่าเวลาที่จะปาดาบครั้งต่อไปได้ (ป้องกันการไปยืนชิดศัตรูแล้วกดเรียกรัวๆ)
+        nextThrowTime = Time.time + throwCooldown;
+
         CharacterSwitcher.Instance.SwitchToArmed();
-        CameraShake.Instance.StartCoroutine(CameraShake.Instance.Shake(0.15f, 0.1f));
+        if (CameraShake.Instance != null) CameraShake.Instance.StartCoroutine(CameraShake.Instance.Shake(0.15f, 0.1f));
     }
     
     // 🟢 ระบบเล็ง: ทำให้ throwPoint โคจรรอบตัวและชี้ไปหาเมาส์
