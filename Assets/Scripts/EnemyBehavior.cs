@@ -43,8 +43,19 @@ public class EnemyBehavior : MonoBehaviour
 
     [Header("Combat Settings")]
     public GameObject projectilePrefab; // กระสุนสำหรับ Range/Fly
+    public Transform firePoint;
     public float fireRate = 1.5f;
     private float nextFireTime;
+    
+    [Header("Melee Game Feel")]
+    public float lungeRange = 2.5f;      // ระยะที่จะเริ่มง้างฟัน
+    public float telegraphTime = 0.5f;   // เวลาง้างดาบ (ยิ่งเยอะ ผู้เล่นยิ่งมีเวลาหลบ)
+    public float lungeSpeedMultiplier = 3f; // ความแรงตอนพุ่งฟัน (เร็วกว่าเดินปกติ 3 เท่า)
+    public float meleeCooldown = 1.5f;   // เวลาพักเหนื่อยหลังฟันเสร็จ
+
+    private bool isPreparingMelee = false;
+    private bool isLunging = false;
+    private float nextMeleeTime;
     
     [Header("Drone (Flying) Settings")]
     public float hoverHeight = 3f;          // ความสูงตอนลอยเหนือผู้เล่น
@@ -66,6 +77,7 @@ public class EnemyBehavior : MonoBehaviour
 
     [Header("References")]
     public Transform player;            // ลาก Player มาใส่ หรือจะหาจาก Tag ใน Start ก็ได้// Prefab เลือดตอนตาย
+    public Animator animator; // 🟢 เพิ่มบรรทัดนี้ เพื่อรอรับ Animator ของศัตรู
     
     [Header("Blood Splatter Settings")]
     public GameObject bloodPrefab;      // Prefab เลือดตอนตาย
@@ -77,13 +89,16 @@ public class EnemyBehavior : MonoBehaviour
     [Header("Chaser Settings")]
     public bool waitToChase = false;
     private bool isChasing = false;
+    
+    [Header("AI Spacing (Anti-Overlap)")]
+    public float separationRadius = 0.8f; // 🟢 ระยะวงกลมเช็คมอนสเตอร์ตัวอื่น
+    public float separationForce = 1.5f;  // 🟢 แรงผลักไม่ให้ยืนทับกัน
 
     void Start()
     {   
         spawnTime = Time.time;
         currentHealth = maxHealth;
         
-        // ถ้าไม่ได้ลาก Player มาใส่ ให้หาจาก Tag "Player" อัตโนมัติ
         if (player == null)
         {
             GameObject p = GameObject.FindGameObjectWithTag("Player");
@@ -94,6 +109,21 @@ public class EnemyBehavior : MonoBehaviour
         {
             isChasing = true;
         }
+
+        // 🟢 [เพิ่มใหม่] สั่งปิดการชนกันแบบฟิสิกส์ (ป้องกันศัตรูดันผู้เล่นจนลอย)
+        // ศัตรูจะพุ่งทะลุตัวเราได้ แต่ "กล่องดาบ" ของมันยังคงฟันโดนเราเสียเลือดอยู่ดี!
+        if (type == EnemyType.MeleeHostile || type == EnemyType.Passive)
+        {
+            Collider2D myCollider = GetComponent<Collider2D>();
+            if (player != null && myCollider != null)
+            {
+                Collider2D[] playerColliders = player.GetComponents<Collider2D>();
+                foreach (Collider2D pCol in playerColliders)
+                {
+                    Physics2D.IgnoreCollision(myCollider, pCol, true);
+                }
+            }
+        }
     }
 
     void Update()
@@ -103,6 +133,11 @@ public class EnemyBehavior : MonoBehaviour
             GameObject activePlayer = GameObject.FindGameObjectWithTag("Player");
             if (activePlayer != null) player = activePlayer.transform;
             else return; // ถ้าหาผู้เล่นไม่เจอเลย ให้หยุดทำงานเฟรมนี้ไปก่อน
+        }
+        
+        if (!isLunging && !isRetreating && !isPreparingMelee)
+        {
+            SeparateFromOtherEnemies();
         }
 
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
@@ -115,6 +150,29 @@ public class EnemyBehavior : MonoBehaviour
             case EnemyType.FlyingHostile: HandleFlyingHostile(distanceToPlayer); break;
             case EnemyType.StationaryTarget: break;
             case EnemyType.BigChaser: HandleBigChaser(); break;
+        }
+    }
+    
+    void SeparateFromOtherEnemies()
+    {
+        // ค้นหามอนสเตอร์ตัวอื่นที่อยู่ในระยะ
+        Collider2D[] others = Physics2D.OverlapCircleAll(transform.position, separationRadius);
+        foreach (Collider2D col in others)
+        {
+            if (col.gameObject != gameObject && col.CompareTag("Enemy"))
+            {
+                // ดันตัวเราออกไปในทิศทางตรงข้ามกับเพื่อน
+                float dirX = Mathf.Sign(transform.position.x - col.transform.position.x);
+                
+                // ถ้าบังเอิญเกิดมาซ้อนกันเป๊ะๆ (X เท่ากัน) ให้สุ่มเด้งซ้ายขวา
+                if (Mathf.Abs(transform.position.x - col.transform.position.x) < 0.05f) 
+                {
+                    dirX = Random.Range(0, 2) == 0 ? 1f : -1f;
+                }
+                
+                Vector2 pushTarget = new Vector2(transform.position.x + dirX, transform.position.y);
+                transform.position = Vector2.MoveTowards(transform.position, pushTarget, separationForce * Time.deltaTime);
+            }
         }
     }
     
@@ -226,17 +284,81 @@ public class EnemyBehavior : MonoBehaviour
 
     void HandleMeleeHostile(float distance)
     {
+        if (isRetreating || isPreparingMelee || isLunging) 
+        {
+            // 🟢 ถ้ากำลังง้างดาบ, พุ่ง หรือกระเด็น ให้ปิดท่าเดิน
+            if (animator != null) animator.SetBool("isMoving", false);
+            return; 
+        }
+
         if (distance <= detectionRange)
         {
-            if (isRetreating)
+            if (distance <= lungeRange && Time.time >= nextMeleeTime)
             {
-                MoveAwayFromPlayer();
+                if (animator != null) animator.SetBool("isMoving", false); // หยุดเดินเตรียมฟัน
+                StartCoroutine(MeleeLungeRoutine()); 
             }
-            else
+            else if (distance > lungeRange - 0.2f)
             {
                 MoveTowardsPlayer();
+                if (animator != null) animator.SetBool("isMoving", true); // 🟢 เปิดท่าเดิน
+            }
+            else 
+            {
+                if (animator != null) animator.SetBool("isMoving", false); // ยืนนิ่งๆ
             }
         }
+        else 
+        {
+            if (animator != null) animator.SetBool("isMoving", false); // อยู่นอกระยะ ยืนนิ่ง
+        }
+    }
+    
+    IEnumerator MeleeLungeRoutine()
+    {
+        isPreparingMelee = true;
+
+        // 🟢 ลบโค้ดเปลี่ยนสีตัวเหลืองออกแล้ว
+
+        float lockedDirX = Mathf.Sign(player.position.x - transform.position.x);
+        Vector2 windupTarget = new Vector2(transform.position.x - (lockedDirX * 0.5f), transform.position.y);
+        
+        float elapsed = 0f;
+        Vector2 startPos = transform.position;
+        while (elapsed < telegraphTime)
+        {
+            transform.position = Vector2.Lerp(startPos, windupTarget, elapsed / telegraphTime);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        isPreparingMelee = false;
+        isLunging = true;
+        
+        if (animator != null) animator.SetTrigger("Attack");
+
+        // 🟢 อัปเกรด: คํานวณระยะพุ่ง โดย "เว้นระยะห่าง 1.0 หน่วย" หน้าผู้เล่น จะได้ไม่ทะลุไปข้างหลัง!
+        float distToPlayer = Mathf.Abs(player.position.x - transform.position.x);
+        float dashDistance = Mathf.Clamp(distToPlayer - 1.0f, 0.1f, lungeRange * 1.5f); 
+        
+        Vector2 lungeTarget = new Vector2(transform.position.x + (lockedDirX * dashDistance), transform.position.y);
+        
+        elapsed = 0f;
+        float dashDuration = 0.2f; 
+        startPos = transform.position;
+
+        while (elapsed < dashDuration)
+        {
+            transform.position = Vector2.Lerp(startPos, lungeTarget, elapsed / dashDuration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        isLunging = false;
+        
+        if (animator != null) animator.SetTrigger("Recovery");
+        
+        nextMeleeTime = Time.time + meleeCooldown; 
     }
 
     void HandleRangedHostile(float distance)
@@ -311,7 +433,7 @@ public class EnemyBehavior : MonoBehaviour
         if (sr != null) sr.color = Color.red; 
         
         // หยุดชาร์จพลังกลางอากาศแปปนึง (ปรับเวลาได้ตามความยากที่อยากได้)
-        yield return new WaitForSeconds(0.6f); 
+        yield return new WaitForSeconds(0.3f); 
 
         // สั่งยิง (ฟังก์ชัน Shoot เดิมที่คุณมีอยู่แล้ว)
         Shoot();
@@ -402,12 +524,14 @@ public class EnemyBehavior : MonoBehaviour
     {
         if (projectilePrefab != null)
         {
-            GameObject bullet = Instantiate(projectilePrefab, transform.position, Quaternion.identity);
-            Vector2 shootDir = (player.position - transform.position).normalized;
+            // 🟢 ถ้ามีจุด FirePoint ให้เสกกระสุนตรงนั้น ถ้าไม่มีให้เสกกลางตัวเหมือนเดิม
+            Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position;
             
-            bullet.GetComponent<Rigidbody2D>().linearVelocity = shootDir * 5f; // ความเร็วกระสุน (ปรับเลข 5 ได้ตามใจชอบ)
+            GameObject bullet = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
+            Vector2 shootDir = (player.position - spawnPos).normalized;
+            
+            bullet.GetComponent<Rigidbody2D>().linearVelocity = shootDir * 5f; 
 
-            // 🟢 หมุนหัวกระสุนให้ชี้ไปหาผู้เล่น
             float angle = Mathf.Atan2(shootDir.y, shootDir.x) * Mathf.Rad2Deg;
             bullet.transform.rotation = Quaternion.Euler(0, 0, angle);
         }
@@ -441,7 +565,39 @@ public class EnemyBehavior : MonoBehaviour
     IEnumerator RetreatRoutine()
     {
         isRetreating = true;
-        yield return new WaitForSeconds(retreatTime);
+
+        isPreparingMelee = false;
+        isLunging = false;
+        
+        if (animator != null) animator.SetTrigger("Hurt");
+        if (animator != null) animator.SetBool("isStunned", true);
+
+        // 👉 เราประกาศตัวแปรตรงนี้ไปแล้ว
+        SpriteRenderer sr = GetComponent<SpriteRenderer>();
+        Color origColor = sr != null ? sr.color : Color.white;
+
+        Vector2 knockbackDir = (transform.position - player.position).normalized;
+        knockbackDir.y = 0; 
+        Vector2 targetPos = (Vector2)transform.position + (knockbackDir * 2f); 
+
+        float elapsed = 0f;
+        float kbDuration = 0.15f; 
+        Vector2 startPos = transform.position;
+
+        while(elapsed < kbDuration)
+        {
+            transform.position = Vector2.Lerp(startPos, targetPos, elapsed / kbDuration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        yield return new WaitForSeconds(Mathf.Max(0, retreatTime - kbDuration));
+        
+        if (animator != null) animator.SetBool("isStunned", false); 
+        
+        // 🟢 ลบบรรทัดที่ประกาศตัวแปรซ้ำทิ้งไป แล้วเขียนแค่นี้พอ เพื่อคืนค่าสีเดิม
+        if (sr != null) sr.color = origColor;
+        
         isRetreating = false;
     }
 
@@ -474,13 +630,44 @@ public class EnemyBehavior : MonoBehaviour
 
         Destroy(gameObject); 
     }
+    
+    [Header("Hitbox Settings")]
+    public GameObject enemyHitbox; // 🟢 กลับไป Unity แล้วลาก Object กล่องดาบศัตรูมาใส่ช่องนี้นะ
 
+    // ฟังก์ชันนี้จะถูกเรียกตอนดาบเริ่มฟาด
+    public void AnimEvent_EnableHitbox()
+    {
+        if (enemyHitbox != null) enemyHitbox.SetActive(true);
+    }
+
+    // ฟังก์ชันนี้จะถูกเรียกตอนฟาดดาบเสร็จแล้ว
+    public void AnimEvent_DisableHitbox()
+    {
+        if (enemyHitbox != null) enemyHitbox.SetActive(false);
+    }
+    
+    // 🟢 วาดเส้นบอกระยะใน Editor จะได้กะระยะ Level Design ได้เป๊ะๆ!
+    private void OnDrawGizmosSelected()
+    {
+        // วาดวงกลมสีเหลือง = ระยะมองเห็น (Detection Range)
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, detectionRange);
+
+        // วาดวงกลมสีแดง = ระยะง้างฟัน (Lunge Range)
+        if (type == EnemyType.MeleeHostile)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(transform.position, lungeRange);
+        }
+    }
+    
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag("Player"))
         {
-            // ถ้าเป็น StationaryTarget หรือ Passive อาจจะไม่ทำดาเมจก็ได้
-            if (type == EnemyType.StationaryTarget || type == EnemyType.Passive) return;
+            // 🟢 เพิ่ม && type != EnemyType.MeleeHostile เข้าไป
+            // แปลว่า: ไม่ทำดาเมจถ้าเป็นเป้านิ่ง, ตัวชาวบ้าน(Passive), หรือตัวถือดาบ(Melee)
+            if (type == EnemyType.StationaryTarget || type == EnemyType.Passive || type == EnemyType.MeleeHostile) return;
 
             PlayerController p = collision.gameObject.GetComponent<PlayerController>();
             if (p != null)

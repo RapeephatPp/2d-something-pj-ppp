@@ -152,9 +152,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeleeHitbox
   damage: 1
-  knockbackForce: 5
-  hitstopDuration: 0.05
-  hitstopScale: 0
+  hitStopDuration: 0.1
+  camShakeMagnitude: 0.2
+  hitSparkPrefab: {fileID: 0}
+  canDeflectProjectiles: 1
 --- !u!1 &1281235893630379350
 GameObject:
   m_ObjectHideFlags: 0
@@ -338,9 +339,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeleeHitbox
   damage: 1
-  knockbackForce: 5
-  hitstopDuration: 0.05
-  hitstopScale: 0
+  hitStopDuration: 0.1
+  camShakeMagnitude: 0.2
+  hitSparkPrefab: {fileID: 0}
+  canDeflectProjectiles: 1
 --- !u!1 &2773387024033540269
 GameObject:
   m_ObjectHideFlags: 0
@@ -493,9 +495,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeleeHitbox
   damage: 1
-  knockbackForce: 5
-  hitstopDuration: 0.05
-  hitstopScale: 0
+  hitStopDuration: 0.1
+  camShakeMagnitude: 0.2
+  hitSparkPrefab: {fileID: 0}
+  canDeflectProjectiles: 1
 --- !u!1 &3337109714129316891
 GameObject:
   m_ObjectHideFlags: 0
@@ -710,9 +713,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeleeHitbox
   damage: 1
-  knockbackForce: 5
-  hitstopDuration: 0.05
-  hitstopScale: 0
+  hitStopDuration: 0.1
+  camShakeMagnitude: 0.2
+  hitSparkPrefab: {fileID: 0}
+  canDeflectProjectiles: 1
 --- !u!1 &7386662849734993561
 GameObject:
   m_ObjectHideFlags: 0
@@ -744,7 +748,7 @@ Transform:
   m_GameObject: {fileID: 7386662849734993561}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -587.42, y: 100.97, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 5, y: 5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

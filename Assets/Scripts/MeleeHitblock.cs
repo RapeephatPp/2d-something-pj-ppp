@@ -1,63 +1,82 @@
 using UnityEngine;
+using System.Collections.Generic;
 
-public class MeleeHitblock : MonoBehaviour
+public class MeleeHitbox : MonoBehaviour
 {
-    [Header("Combat Stats")]
-    public int damage = 10;
-    public float knockbackForce = 5f; // แรงผลักศัตรูกระเด็น
+    [Header("Hitbox Settings")]
+    public int damage = 3;
+    public float hitStopDuration = 0.1f;
+    public float camShakeMagnitude = 0.2f;
 
-    [Header("Game Feel")]
-    public float hitstopDuration = 0.05f; // ระยะเวลาหยุดเฟรม (ยิ่งนานยิ่งรู้สึกว่าตีแรง)
-    public float hitstopScale = 0.0f;     // ความช้าตอนชน (0 คือหยุดนิ่งเลย)
+    [Header("Game Feel (Juice)")]
+    public GameObject hitSparkPrefab; // 🟢 ลาก Prefab เอฟเฟกต์ประกายไฟ หรือ เลือด มาใส่ช่องนี้
 
+    [Header("Parry System (ตีปัดการโจมตี)")]
+    public bool canDeflectProjectiles = true; // 🟢 เปิด/ปิด ความสามารถในการฟันกระสุนศัตรูทิ้ง!
+
+    private HashSet<Collider2D> hitTargets = new HashSet<Collider2D>();
     private PlayerController player;
 
-    private void Start()
+    void Awake()
     {
-        // ดึงคอมโพเนนต์ PlayerController จากตัวละครหลัก (เพราะกล่อง Hitbox มักเป็นลูกของ Player)
         player = GetComponentInParent<PlayerController>();
+        
+        // ซ่อนกล่องแดงไว้ก่อนตอนเริ่มเกม โค้ด Player/Animation จะเป็นคนสั่งเปิดเอง
+        gameObject.SetActive(false);
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
+    void OnEnable()
     {
-        // 1. เช็คว่าแท็กของสิ่งที่ชนคือ "Enemy" ใช่หรือไม่
-        if (other.CompareTag("Enemy"))
+        // ล้างความจำเป้าหมายทุกครั้งที่กล่องแดงโผล่มาใหม่ (เริ่มฟันฮิตใหม่)
+        hitTargets.Clear();
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        // 🟢 1. ถ้าฟันโดนศัตรู
+        if (collision.CompareTag("Enemy") && !hitTargets.Contains(collision))
         {
-            // 2. เรียกให้ศัตรูลดเลือด (อ้างอิงไปที่สคริปต์ศัตรูของคุณ)
-            EnemyBehavior enemy = other.GetComponent<EnemyBehavior>();
+            hitTargets.Add(collision); 
+            
+            EnemyBehavior enemy = collision.GetComponent<EnemyBehavior>();
             if (enemy != null)
             {
-                enemy.TakeDamage(damage); 
-            }
-
-            // 3. ฟิสิกส์: ดันศัตรูให้กระเด็นถอยหลัง (Knockback)
-            Rigidbody2D enemyRb = other.GetComponent<Rigidbody2D>();
-            if (enemyRb != null)
-            {
-                // คำนวณหาทิศทางว่าศัตรูอยู่ซ้ายหรือขวาของดาบเรา
-                float pushDirection = Mathf.Sign(other.transform.position.x - player.transform.position.x);
+                enemy.TakeDamage(damage);
                 
-                // สร้างเวกเตอร์แรงผลัก: ถอยหลัง (X) และลอยขึ้นนิดๆ (Y) ให้ดูมีน้ำหนัก
-                Vector2 knockback = new Vector2(pushDirection * knockbackForce, knockbackForce * 0.3f);
+                // เสกเอฟเฟกต์ประกายไฟตรงจุดที่สัมผัสกัน
+                SpawnHitSpark(collision);
                 
-                enemyRb.linearVelocity = Vector2.zero; // ล้างแรงเก่าของศัตรูทิ้งก่อน
-                enemyRb.AddForce(knockback, ForceMode2D.Impulse); // กระแทกเปรี้ยง!
+                // สั่งหยุดเวลาและสั่นกล้อง
+                if (player != null) player.TriggerHitStop(hitStopDuration);
+                if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.2f, camShakeMagnitude));
             }
+        }
 
-            // 4. Game Feel: สั่งหยุดเวลาชั่วคราวและสั่นกล้อง
-            if (player != null)
-            {
-                // สั่งรัน Coroutine HitStop (ต้องแก้ใน PlayerController ให้เป็น public ด้วยนะ)
-                player.StartCoroutine(player.HitStopRoutine(hitstopDuration, hitstopScale));
-            }
+        // 🟢 2. ถ้าระบบ Parry ทำงาน และฟันไปโดนกระสุนศัตรู (ต้องตั้ง Tag กระสุนเป็น "EnemyProjectile")
+        if (canDeflectProjectiles && collision.CompareTag("EnemyProjectile") && !hitTargets.Contains(collision))
+        {
+            hitTargets.Add(collision); // ป้องกันบั๊กตีโดนซ้ำ
 
-            if (CameraShake.Instance != null)
-            {
-                // ตีโดนปุ๊บ กล้องสั่นปั๊บ
-                CameraShake.Instance.StartCoroutine(CameraShake.Instance.Shake(0.15f, 0.1f));
-            }
+            // เสกประกายไฟตรงกระสุนที่โดนปัด
+            SpawnHitSpark(collision);
 
-            // 🟢 จุดเสริมอนาคต: ถ้ามี Particle เลือดหรือแสงดาบ ก็ Instantiate ตรงนี้ได้เลย!
+            // ทำลายกระสุนทิ้งไปเลย! (ผู้เล่นรอดตัว)
+            Destroy(collision.gameObject);
+
+            // สั่นกล้องและหยุดเวลาสั้นๆ ให้รู้สึกสะใจที่ปัดได้ทัน
+            if (player != null) player.TriggerHitStop(hitStopDuration * 0.5f);
+            if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.15f, 0.1f));
+        }
+    }
+
+    // ฟังก์ชันช่วยเสกเอฟเฟกต์ให้อยู่ตรงขอบที่ชนกันพอดี
+    void SpawnHitSpark(Collider2D targetCollider)
+    {
+        if (hitSparkPrefab != null)
+        {
+            // หาจุดที่ใกล้ที่สุดระหว่างจุดศูนย์กลางดาบ กับ ขอบกล่องของเป้าหมาย
+            Vector2 contactPoint = targetCollider.ClosestPoint(transform.position);
+            Instantiate(hitSparkPrefab, contactPoint, Quaternion.identity);
         }
     }
 }
