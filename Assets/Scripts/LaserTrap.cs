@@ -153,7 +153,7 @@ public class LaserTrap : MonoBehaviour
                     }
 
                     if (CameraShake.Instance != null) 
-                        StartCoroutine(CameraShake.Instance.Shake(0.15f, 0.1f));
+                        CameraShake.Instance.StartManagedShake(0.15f, 0.1f);
                 }
             }
         }

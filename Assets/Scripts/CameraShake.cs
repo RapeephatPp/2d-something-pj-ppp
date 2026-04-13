@@ -52,16 +52,9 @@ public class CameraShake : MonoBehaviour
         isSwaying = false;
     }
 
-    public IEnumerator Shake(float duration, float magnitude)
-    {
-        StartManagedShake(duration, magnitude);
-        yield break; 
-    }
-
-    private void StartManagedShake(float duration, float magnitude)
+    public void StartManagedShake(float duration, float magnitude)
     {
         if (activeShake != null) StopCoroutine(activeShake);
-        
         activeShake = StartCoroutine(ShakeRoutine(duration, magnitude));
     }
 

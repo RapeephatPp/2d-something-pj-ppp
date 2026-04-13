@@ -119,6 +119,12 @@ MonoBehaviour:
   wanderRadius: 3
   wanderInterval: 2
   gracePeriod: 1.5
+  alertIcon: {fileID: 0}
+  obstacleLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  wallCheckDist: 1
+  panicDuration: 5
   projectilePrefab: {fileID: 0}
   firePoint: {fileID: 0}
   fireRate: 1.5
@@ -138,8 +144,8 @@ MonoBehaviour:
   player: {fileID: 0}
   animator: {fileID: 3959985999966288405}
   bloodPrefab: {fileID: 5439592118639056117, guid: 7170a7cadba21d14f9b966c5ceb8111b, type: 3}
-  minBloodSpawns: 3
-  maxBloodSpawns: 6
+  minBloodSpawns: 6
+  maxBloodSpawns: 9
   bloodSpread: 1.5
   bloodHeightOffset: 1
   waitToChase: 0

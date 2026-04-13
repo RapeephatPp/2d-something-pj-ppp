@@ -48,7 +48,7 @@ public class MeleeHitbox : MonoBehaviour
                 
                 // สั่งหยุดเวลาและสั่นกล้อง
                 if (player != null) player.TriggerHitStop(hitStopDuration);
-                if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.2f, camShakeMagnitude));
+                if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.2f, camShakeMagnitude);
             }
         }
 
@@ -65,7 +65,7 @@ public class MeleeHitbox : MonoBehaviour
 
             // สั่นกล้องและหยุดเวลาสั้นๆ ให้รู้สึกสะใจที่ปัดได้ทัน
             if (player != null) player.TriggerHitStop(hitStopDuration * 0.5f);
-            if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.15f, 0.1f));
+            if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.15f, 0.1f);
         }
     }
 

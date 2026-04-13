@@ -5,6 +5,7 @@ public class CameraFollow : MonoBehaviour
     public Transform target;
     public float smoothSpeed = 5f;
     public Vector3 offset;
+    private Vector3 velocity = Vector3.zero;
 
     [Header("Mouse Follow")]
     [SerializeField] private float mouseOffsetDistance = 2f;
@@ -33,7 +34,7 @@ public class CameraFollow : MonoBehaviour
 
         desiredPos += mouseOffset;
 
-        Vector3 smoothPos = Vector3.Lerp(transform.position, desiredPos, smoothSpeed * Time.deltaTime);
+        Vector3 smoothPos = Vector3.SmoothDamp(transform.position, desiredPos, ref velocity, 1f / smoothSpeed);
         transform.position = new Vector3(smoothPos.x, smoothPos.y, transform.position.z);
     }
 }

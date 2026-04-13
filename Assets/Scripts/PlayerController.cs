@@ -126,6 +126,9 @@ public class PlayerController : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        
+        defaultGravity = rb.gravityScale;
+        
         spriteRenderer = GetComponent<SpriteRenderer>();
         if (animator == null) animator = GetComponent<Animator>();
         mainCam = Camera.main;
@@ -138,7 +141,6 @@ public class PlayerController : MonoBehaviour
             isArmed = false;
         }
         
-        defaultGravity = rb.gravityScale;
         currentHealth = maxHealth;
         currentGuardGauge = maxGuardGauge;
         if (spriteRenderer != null) originalColor = spriteRenderer.color;
@@ -444,14 +446,20 @@ public class PlayerController : MonoBehaviour
     {
         float elapsed = 0f;
         Color startColor = ghost.color;
+        
+        Vector3 startScale = ghost.transform.localScale;
+        Vector3 targetScale = startScale * 1.2f; // ให้เงาขยายขึ้น 20% ตอนหายไป
 
         while (elapsed < fadeTime)
         {
-            if (ghost == null) yield break; // ถ้าเงาโดนทำลายไปแล้ว ให้หยุดทำงานทันที
+            if (ghost == null) yield break; 
             
             elapsed += Time.deltaTime;
             float alpha = Mathf.Lerp(startColor.a, 0f, elapsed / fadeTime);
             ghost.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
+            
+            // 🟢 เพิ่มบรรทัดนี้เข้าไป! ให้เงามันค่อยๆ ขยายร่างออกตอนที่กำลังจางหาย
+            ghost.transform.localScale = Vector3.Lerp(startScale, targetScale, elapsed / fadeTime);
             
             yield return null;
         }
@@ -508,16 +516,17 @@ public class PlayerController : MonoBehaviour
             if (!isGrounded)
             {
                 comboStep = 2; 
-                
-                // 🟢 ไอเดียของคุณเลย! สั่งเบรกตัวละครกลางอากาศแบบเท่ๆ (Air Hang)
-                rb.linearVelocity = Vector2.zero; // ล็อคความเร็วทั้ง X และ Y ให้เป็น 0 ชะงักกึก!
-                rb.gravityScale = 0f; // ปิดแรงโน้มถ่วงชั่วคราว ดาบจะได้ไม่แป้ก
+                rb.linearVelocity = Vector2.zero; 
+                rb.gravityScale = 0f; 
             }
             else
             {
                 comboStep++;
                 if (comboStep > 3) comboStep = 1;
-                rb.linearVelocity = new Vector2(rb.linearVelocity.x * 0.8f, rb.linearVelocity.y);
+                
+                // 🟢 สร้างแรงกระเถิบไปข้างหน้า (Micro-Lunge) ตอนฟันดาบ
+                float facingDir = Mathf.Sign(transform.localScale.x);
+                rb.linearVelocity = new Vector2(facingDir * 4f, rb.linearVelocity.y); // เปลี่ยนจากเบรค เป็นพุ่งไปข้างหน้าเบาๆ!
             }
 
             if (animator != null)
@@ -560,7 +569,7 @@ public class PlayerController : MonoBehaviour
             // 🟢 ปรับวิธีเรียก Camera Shake ให้ปลอดภัยขึ้น
             if (CameraShake.Instance != null && CameraShake.Instance.gameObject.activeInHierarchy) 
             {
-                CameraShake.Instance.StartCoroutine(CameraShake.Instance.Shake(0.1f, 0.05f));
+                CameraShake.Instance.StartManagedShake(0.1f, 0.05f);
             }
         }
         catch (System.Exception e) 
@@ -639,7 +648,10 @@ public class PlayerController : MonoBehaviour
         nextThrowTime = Time.time + throwCooldown;
 
         CharacterSwitcher.Instance.SwitchToArmed();
-        if (CameraShake.Instance != null) CameraShake.Instance.StartCoroutine(CameraShake.Instance.Shake(0.15f, 0.1f));
+        if (CameraShake.Instance != null) 
+        {
+            CameraShake.Instance.StartManagedShake(0.15f, 0.1f);
+        }
     }
     
     // 🟢 ระบบเล็ง: ทำให้ throwPoint โคจรรอบตัวและชี้ไปหาเมาส์
@@ -728,7 +740,7 @@ public class PlayerController : MonoBehaviour
             }
         }
         
-        if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.25f, 0.2f)); 
+        if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.25f, 0.2f); 
 
         rb.gravityScale = originalGravity; 
         isTargetDashing = false;
@@ -792,7 +804,7 @@ public class PlayerController : MonoBehaviour
             case JuiceType.ArmorBreak:
                 StartCoroutine(FlashColorRoutine(armorBreakColor, originalColor));
                 TriggerHitStop(0.15f); 
-                if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.3f, 0.25f)); 
+                if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.3f, 0.25f); 
                 break;
             case JuiceType.Stun:
                 float t = Mathf.PingPong(Time.time * 8f, 1f);
@@ -835,12 +847,12 @@ public class PlayerController : MonoBehaviour
         if (rb != null) rb.gravityScale = defaultGravity; 
 
         TriggerHitStop(0.1f);
-        if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.3f, 0.2f));
+        if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.3f, 0.2f);
 
         if (isBlocking)
         {
             if (spriteRenderer != null) StartCoroutine(FlashColorRoutine(blockColor, originalColor));
-            if (CameraShake.Instance != null) StartCoroutine(CameraShake.Instance.Shake(0.15f, 0.08f)); 
+            if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.15f, 0.08f); 
             TriggerHitStop(0.04f); 
 
             currentGuardGauge -= guardDepleteOnHit;
@@ -894,6 +906,35 @@ public class PlayerController : MonoBehaviour
         animator.SetBool("IsGrounded", isGrounded);
         animator.SetFloat("VelocityY", rb.linearVelocity.y);
     }
+    
+    // 🟢 [เพิ่มใหม่] ทำงานอัตโนมัติเมื่อตัวละครถูกปิด (สลับร่าง)
+    private void OnDisable()
+    {
+        // 1. ป้องกันบั๊ก HitStop ค้าง (เกม Freeze)
+        Time.timeScale = 1f;
+        if (currentHitStop != null) currentHitStop = null;
+
+        // 2. ป้องกันตัวละครลอยค้างกลางอากาศ หรืออมตะค้าง
+        isDashing = false;
+        isTargetDashing = false;
+        isInvincible = false;
+        isAttacking = false;
+        isDropping = false;
+        
+        if (rb != null)
+        {
+            rb.gravityScale = defaultGravity;
+            // ปลดเบรกมือทุกชนิด ให้ขยับได้ปกติ
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation; 
+        }
+        
+        // 3. ปิด Hitbox ที่อาจจะเปิดค้างอยู่
+        AnimEvent_DisableHitbox();
+    }
+
+    // 🟢 [เพิ่มใหม่] ฟังก์ชันสำหรับให้ร่างใหม่ ดึงสเตตัสจากร่างเก่าไปใช้
+    public float GetDashCooldown() { return dashCooldownTimer; }
+    public void SetDashCooldown(float timer) { dashCooldownTimer = timer; }
     
     private void OnDestroy()
     {

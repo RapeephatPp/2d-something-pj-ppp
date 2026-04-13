@@ -33,10 +33,16 @@ public class CharacterSwitcher : MonoBehaviour
     {
         if (isArmed) return;
 
-        // 🟢 ก๊อปปี้เลือดจากตัวมือเปล่า ไปให้ตัวถือดาบ
         PlayerController unarmedPC = unarmedPlayer.GetComponent<PlayerController>();
         PlayerController armedPC = armedPlayer.GetComponent<PlayerController>();
-        if (unarmedPC != null && armedPC != null) armedPC.currentHealth = unarmedPC.currentHealth;
+
+        // 🟢 โอนถ่ายข้อมูลสำคัญทั้งหมดจากร่างมือเปล่า -> ร่างถือดาบ
+        if (unarmedPC != null && armedPC != null)
+        {
+            armedPC.currentHealth = unarmedPC.currentHealth;
+            armedPC.currentGuardGauge = unarmedPC.currentGuardGauge; // ก๊อปปี้หลอดเกราะ
+            armedPC.SetDashCooldown(unarmedPC.GetDashCooldown());    // ก๊อปปี้คูลดาวน์พุ่งตัว
+        }
 
         armedPlayer.transform.position = unarmedPlayer.transform.position;
         armedPlayer.transform.localScale = unarmedPlayer.transform.localScale;
@@ -57,10 +63,16 @@ public class CharacterSwitcher : MonoBehaviour
     {
         if (!isArmed) return;
 
-        // 🟢 ก๊อปปี้เลือดจากตัวถือดาบ ไปให้ตัวมือเปล่า
         PlayerController unarmedPC = unarmedPlayer.GetComponent<PlayerController>();
         PlayerController armedPC = armedPlayer.GetComponent<PlayerController>();
-        if (unarmedPC != null && armedPC != null) unarmedPC.currentHealth = armedPC.currentHealth;
+
+        // 🟢 โอนถ่ายข้อมูลสำคัญทั้งหมดจากร่างถือดาบ -> ร่างมือเปล่า
+        if (unarmedPC != null && armedPC != null)
+        {
+            unarmedPC.currentHealth = armedPC.currentHealth;
+            unarmedPC.currentGuardGauge = armedPC.currentGuardGauge; // ก๊อปปี้หลอดเกราะ
+            unarmedPC.SetDashCooldown(armedPC.GetDashCooldown());    // ก๊อปปี้คูลดาวน์พุ่งตัว
+        }
 
         unarmedPlayer.transform.position = armedPlayer.transform.position;
         unarmedPlayer.transform.localScale = armedPlayer.transform.localScale;
@@ -74,7 +86,8 @@ public class CharacterSwitcher : MonoBehaviour
         PlayerController.isArmed = false;
 
         if (cameraFollow != null) cameraFollow.target = unarmedPlayer.transform;
-        isArmed = false;
+        isArmed = true; // ⚠️ ตรงนี้เดิมคุณเขียน isArmed = false; แต่ในสคริปต์ผมเห็นเป็นบรรทัดสุดท้ายเดี๋ยวเช็คให้ชัวร์
+        isArmed = false; // แก้ให้ถูกต้องเป็น false นะครับ!
     }
     
     private void ForceUnarmed()
