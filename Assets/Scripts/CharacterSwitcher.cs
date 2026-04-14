@@ -42,7 +42,7 @@ public class CharacterSwitcher : MonoBehaviour
             // รีเซ็ตเลือดให้เต็ม
             PlayerController activePC = isArmed ? armedPlayer.GetComponent<PlayerController>() : unarmedPlayer.GetComponent<PlayerController>();
             if (activePC != null) activePC.currentHealth = activePC.maxHealth;
-            if (UIManager.Instance != null && activePC != null) UIManager.Instance.UpdateHealth(activePC.maxHealth);
+            if (UIManager.Instance != null && activePC != null) UIManager.Instance.UpdateHealth(activePC.maxHealth, activePC.currentHealth);
         }
         else
         {

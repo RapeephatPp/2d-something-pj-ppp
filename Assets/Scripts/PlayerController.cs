@@ -144,7 +144,7 @@ public class PlayerController : MonoBehaviour
         currentHealth = maxHealth;
         currentGuardGauge = maxGuardGauge;
         if (spriteRenderer != null) originalColor = spriteRenderer.color;
-        if (UIManager.Instance != null) UIManager.Instance.UpdateHealth(currentHealth); 
+        if (UIManager.Instance != null) UIManager.Instance.UpdateHealth(currentHealth, maxHealth);
     }
 
     private void Update()
@@ -862,7 +862,7 @@ public class PlayerController : MonoBehaviour
         else TriggerJuice(JuiceType.Hurt);
 
         currentHealth -= damage;
-        if (UIManager.Instance != null) UIManager.Instance.UpdateHealth(currentHealth); 
+        if (UIManager.Instance != null) UIManager.Instance.UpdateHealth(currentHealth, maxHealth);
         if (currentHealth <= 0) Die();
     }
 
@@ -872,7 +872,7 @@ public class PlayerController : MonoBehaviour
         currentHealth += healAmount;
         if (currentHealth > maxHealth) currentHealth = maxHealth;
 
-        if (UIManager.Instance != null) UIManager.Instance.UpdateHealth(currentHealth);
+        if (UIManager.Instance != null) UIManager.Instance.UpdateHealth(currentHealth, maxHealth);
         if (spriteRenderer != null) StartCoroutine(FlashColorRoutine(Color.green, originalColor));
     }
     
@@ -955,8 +955,16 @@ public class PlayerController : MonoBehaviour
         // 3. ปิด Hitbox ที่อาจจะเปิดค้างอยู่
         AnimEvent_DisableHitbox();
     }
+    
+    // 🟢 ส่งค่า % คูลดาวน์ของดาบ (0.0 ถึง 1.0) ไปให้ UI
+    public float GetSwordCooldownPercentage()
+    {
+        if (Time.time >= nextThrowTime) return 1f; // คูลดาวน์เสร็จแล้ว (เต็มหลอด)
+        float timeLeft = nextThrowTime - Time.time;
+        return 1f - (timeLeft / throwCooldown);    // คำนวณหลอดกำลังวิ่ง
+    }
 
-    // 🟢 [เพิ่มใหม่] ฟังก์ชันสำหรับให้ร่างใหม่ ดึงสเตตัสจากร่างเก่าไปใช้
+    //ฟังก์ชันสำหรับให้ร่างใหม่ ดึงสเตตัสจากร่างเก่าไปใช้
     public float GetDashCooldown() { return dashCooldownTimer; }
     public void SetDashCooldown(float timer) { dashCooldownTimer = timer; }
     
