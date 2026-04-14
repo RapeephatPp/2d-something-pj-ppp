@@ -37,15 +37,11 @@ public class MainMenuController : MonoBehaviour
     {
         Debug.Log("Starting New Game...");
         
-        // 🟢 เปลี่ยนจากการโหลดฉากตัดฉับๆ มาเป็นการเรียกใช้ ScreenFader แทน!
-        if (ScreenFader.Instance != null)
-        {
-            ScreenFader.Instance.FadeToScene(1); // เปลี่ยน 1 เป็นตัวเลขด่านแรกของคุณ
-        }
-        else
-        {
-            SceneManager.LoadScene(1); 
-        }
+        // 🟢 ล้างข้อมูล Checkpoint เก่าทิ้ง ป้องกันบั๊กวาร์ปมั่ว
+        CharacterSwitcher.hasCheckpoint = false; 
+
+        if (ScreenFader.Instance != null) ScreenFader.Instance.FadeToScene(1); 
+        else SceneManager.LoadScene(1); 
     }
 
     public void ContinueGame()

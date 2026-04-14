@@ -80,7 +80,7 @@ public class ScreenFader : MonoBehaviour
         // พอโหลดเสร็จ ฟังก์ชัน OnSceneLoaded ด้านบนจะรับช่วงต่อเองครับ!
     }
 
-    private IEnumerator FadeRoutine(float targetAlpha)
+    public IEnumerator FadeRoutine(float targetAlpha)
     {
         if (fadeImageGroup == null) yield break;
 

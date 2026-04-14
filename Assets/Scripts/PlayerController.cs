@@ -888,7 +888,31 @@ public class PlayerController : MonoBehaviour
         if (rb != null) rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
     }
 
-    void Die() { Debug.Log("Game Over"); }
+    // 🟢 ลบ void Die() อันเก่าทิ้ง แล้วใช้อันนี้แทน
+    void Die() 
+    { 
+        if (isInvincible) return; 
+        isInvincible = true;
+        
+        if (rb != null) rb.linearVelocity = Vector2.zero;
+        isDashing = false;
+        isTargetDashing = false;
+        isAttacking = false;
+
+        StartCoroutine(GameOverSequence());
+    }
+
+    private IEnumerator GameOverSequence()
+    {
+        // 1. รอให้ตัวละครลงไปนอนจมกองเลือดสัก 1 วินาที ให้มี Game Feel
+        yield return new WaitForSeconds(1.0f);
+        
+        // 2. เรียกหน้าต่าง UI Game Over ขึ้นมา
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.ShowGameOver();
+        }
+    }
     
     private void OnDrawGizmosSelected()
     {
