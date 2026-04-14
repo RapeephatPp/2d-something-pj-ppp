@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using UnityEngine.Audio; // สำหรับคนที่ใช้ AudioMixer
 
 public class MainMenuController : MonoBehaviour
 {
@@ -26,10 +25,9 @@ public class MainMenuController : MonoBehaviour
 
     void Start()
     {
-        // เริ่มต้น: เปิดหน้าหลักหน้าเดียว ที่เหลือปิดให้หมด
         CloseAllPanels();
-        mainMenuPanel.SetActive(true);
-        Time.timeScale = 1f; // คืนเวลาให้โลกปกติ
+        if (mainMenuPanel != null) mainMenuPanel.SetActive(true);
+        Time.timeScale = 1f; 
     }
 
     // --- START SECTION ---
@@ -38,45 +36,43 @@ public class MainMenuController : MonoBehaviour
     public void NewGame()
     {
         Debug.Log("Starting New Game...");
-        // สมมติว่าด่านแรกอยู่ที่ Index 1 ใน Build Settings
-        SceneManager.LoadScene(1); 
+        
+        // 🟢 เปลี่ยนจากการโหลดฉากตัดฉับๆ มาเป็นการเรียกใช้ ScreenFader แทน!
+        if (ScreenFader.Instance != null)
+        {
+            ScreenFader.Instance.FadeToScene(1); // เปลี่ยน 1 เป็นตัวเลขด่านแรกของคุณ
+        }
+        else
+        {
+            SceneManager.LoadScene(1); 
+        }
     }
 
     public void ContinueGame()
     {
         Debug.Log("Loading Saved Game...");
-        // ใส่ Logic การโหลดไฟล์เซฟของคุณตรงนี้
+        
+        // 🟢 ให้โหลดด่านเซฟด้วยการเฟดจอเหมือนกัน
+        if (ScreenFader.Instance != null)
+        {
+            ScreenFader.Instance.FadeToScene(1); // (เดี๋ยวค่อยเปลี่ยนเป็นเลขด่านตามเซฟทีหลัง)
+        }
     }
 
     // --- SETTINGS SECTION ---
     public void OpenSettings() => SwitchPanel(settingsPanel, settingsFirstBtn);
 
-    public void SetMasterVolume(float value)
-    {
-        Debug.Log($"Master Volume: {value}");
-        // ถ้าใช้ AudioMixer: mixer.SetFloat("Master", Mathf.Log10(value) * 20);
-        PlayerPrefs.SetFloat("MasterVol", value);
-    }
-
-    public void SetBGMVolume(float value)
-    {
-        Debug.Log($"BGM Volume: {value}");
-        PlayerPrefs.SetFloat("BGMVol", value);
-    }
-
-    public void SetSFXVolume(float value)
-    {
-        Debug.Log($"SFX Volume: {value}");
-        PlayerPrefs.SetFloat("SFXVol", value);
-    }
+    public void SetMasterVolume(float value) { PlayerPrefs.SetFloat("MasterVol", value); }
+    public void SetBGMVolume(float value) { PlayerPrefs.SetFloat("BGMVol", value); }
+    public void SetSFXVolume(float value) { PlayerPrefs.SetFloat("SFXVol", value); }
 
     // --- EXTRAS SECTION ---
     public void OpenExtras() => SwitchPanel(extrasPanel, extrasFirstBtn);
     public void OpenGallery() => Debug.Log("Gallery Coming Soon...");
 
     // --- QUIT SECTION ---
-    public void AskToQuit() => quitConfirmPopup.SetActive(true);
-    public void CancelQuit() => quitConfirmPopup.SetActive(false);
+    public void AskToQuit() { if (quitConfirmPopup != null) quitConfirmPopup.SetActive(true); }
+    public void CancelQuit() { if (quitConfirmPopup != null) quitConfirmPopup.SetActive(false); }
     
     public void ConfirmQuit()
     {
@@ -90,17 +86,17 @@ public class MainMenuController : MonoBehaviour
     private void SwitchPanel(GameObject targetPanel, GameObject firstBtn)
     {
         CloseAllPanels();
-        targetPanel.SetActive(true);
-        if (firstBtn != null)
+        if (targetPanel != null) targetPanel.SetActive(true);
+        if (firstBtn != null && UnityEngine.EventSystems.EventSystem.current != null)
             UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(firstBtn);
     }
 
     private void CloseAllPanels()
     {
-        mainMenuPanel.SetActive(false);
-        startOptionsPanel.SetActive(false);
-        settingsPanel.SetActive(false);
-        extrasPanel.SetActive(false);
-        quitConfirmPopup.SetActive(false);
+        if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
+        if (startOptionsPanel != null) startOptionsPanel.SetActive(false);
+        if (settingsPanel != null) settingsPanel.SetActive(false);
+        if (extrasPanel != null) extrasPanel.SetActive(false);
+        if (quitConfirmPopup != null) quitConfirmPopup.SetActive(false);
     }
 }

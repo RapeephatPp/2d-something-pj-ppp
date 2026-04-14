@@ -5,13 +5,21 @@ public class PauseMenuController : MonoBehaviour
 {
     public static bool isPaused = false;
 
-    [Header("UI Panels")]
-    public GameObject pauseMenuPanel;
-    public GameObject settingsPanel; // สามารถลากหน้า Settings จาก Main Menu มาใช้ซ้ำได้
+    [Header("UI Panels (ลาก Panel ที่มี UIPanelTransition มาใส่)")]
+    // 🟢 เปลี่ยนจาก GameObject เป็น UIPanelTransition เพื่อให้มันเรียกใช้แอนิเมชันได้
+    public UIPanelTransition pauseMenuPanel;
+    public UIPanelTransition settingsPanel;
+
+    void Start()
+    {
+        isPaused = false;
+        // ถ้าเกมเริ่มมา ให้แน่ใจว่าหน้าต่างพวกนี้โดนซ่อนอยู่
+        if (pauseMenuPanel != null) pauseMenuPanel.HidePanel();
+        if (settingsPanel != null) settingsPanel.HidePanel();
+    }
 
     void Update()
     {
-        // 🟢 กด Escape เพื่อพักเกมหรือกลับมาเล่นต่อ
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             if (isPaused) Resume();
@@ -21,52 +29,61 @@ public class PauseMenuController : MonoBehaviour
 
     public void Resume()
     {
-        pauseMenuPanel.SetActive(false);
-        settingsPanel.SetActive(false);
+        // 🟢 เปลี่ยนมาใช้ HidePanel() แทน SetActive(false)
+        if (pauseMenuPanel != null) pauseMenuPanel.HidePanel();
+        if (settingsPanel != null) settingsPanel.HidePanel();
         
-        Time.timeScale = 1f; // 🟢 คืนเวลาให้โลกในเกม
+        Time.timeScale = 1f; 
         isPaused = false;
         
-        // ล็อคเมาส์กลับคืน (ถ้าเกมมีการล็อคเมาส์)
+        // ถ้าเกมคุณล็อคเมาส์ตอนเล่น ก็ปลดตรงนี้
         // Cursor.lockState = CursorLockMode.Locked;
         // Cursor.visible = false;
     }
 
     public void Pause()
     {
-        pauseMenuPanel.SetActive(true);
+        // 🟢 เปลี่ยนมาใช้ ShowPanel() แทน SetActive(true)
+        if (pauseMenuPanel != null) pauseMenuPanel.ShowPanel();
         
-        Time.timeScale = 0f; // 🟢 หยุดเวลาทุกอย่างในเกม (Update จะยังทำงานแต่ฟิสิกส์จะหยุด)
+        Time.timeScale = 0f; 
         isPaused = true;
 
-        // ปลดล็อคเมาส์ให้กดปุ่มได้
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
 
     public void OpenSettings()
     {
-        pauseMenuPanel.SetActive(false);
-        settingsPanel.SetActive(true);
+        if (pauseMenuPanel != null) pauseMenuPanel.HidePanel();
+        if (settingsPanel != null) settingsPanel.ShowPanel();
     }
 
     public void CloseSettings()
     {
-        settingsPanel.SetActive(false);
-        pauseMenuPanel.SetActive(true);
+        if (settingsPanel != null) settingsPanel.HidePanel();
+        if (pauseMenuPanel != null) pauseMenuPanel.ShowPanel();
     }
 
     public void LoadSave()
     {
         Debug.Log("Loading last save point...");
-        // 🟢 Logic: Resume เกมก่อนแล้วค่อยวาร์ปผู้เล่นไปจุดเซฟ
         Resume();
         // เรียกใช้ฟังก์ชัน Load จาก SaveSystem ของคุณที่นี่
     }
 
     public void ReturnToMainMenu()
     {
-        Time.timeScale = 1f; // 🟢 สำคัญมาก: ต้องคืนเวลาก่อนเปลี่ยน Scene ไม่เช่นนั้นหน้าเมนูจะหยุดนิ่ง
-        SceneManager.LoadScene(0); // กลับไปหน้าเมนู (Index 0)
+        Time.timeScale = 1f; 
+        
+        // 🟢 อัปเกรด: ถ้ามีระบบ ScreenFader ให้ใช้เฟดจอตอนกลับเมนูหลัก!
+        if (ScreenFader.Instance != null)
+        {
+            ScreenFader.Instance.FadeToScene(0);
+        }
+        else
+        {
+            SceneManager.LoadScene(0); 
+        }
     }
 }

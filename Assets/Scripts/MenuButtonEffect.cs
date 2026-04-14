@@ -1,21 +1,25 @@
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.EventSystems; // จำเป็นต้องมีเพื่อดักจับเมาส์
+using UnityEngine.EventSystems;
 
 public class MenuButtonEffect : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, ISelectHandler, IDeselectHandler
 {
     [Header("Animation Settings")]
-    public float moveDistance = 30f;     // ระยะที่ปุ่มจะยื่นออกมาทางขวา
-    public float scaleMultiplier = 1.1f; // ขนาดที่จะขยายขึ้น (1.1 = 110%)
-    public float animationSpeed = 10f;   // ความเร็วในการเปลี่ยนค่า
+    public float moveDistance = 30f;     
+    public float scaleMultiplier = 1.1f; 
+    public float animationSpeed = 15f;   
+
+    [Header("Overlay/Border Settings")]
+    [Tooltip("ลาก Object ที่เป็นขอบ หรือ กรอบเรืองแสง (ที่มี CanvasGroup) มาใส่ตรงนี้")]
+    public CanvasGroup hoverOverlay; // 🟢 ตัวจัดการเฟดความใสของขอบ
 
     private RectTransform rectTransform;
     private Vector3 originalPosition;
     private Vector3 targetPosition;
     private Vector3 originalScale;
     private Vector3 targetScale;
-
-    private bool isHovered = false;
+    
+    private float targetAlpha = 0f; // เป้าหมายความใสของกรอบ (0 = ซ่อน, 1 = โชว์)
 
     void Awake()
     {
@@ -25,20 +29,26 @@ public class MenuButtonEffect : MonoBehaviour, IPointerEnterHandler, IPointerExi
         
         targetPosition = originalPosition;
         targetScale = originalScale;
+
+        // เริ่มเกมมาให้ซ่อนขอบไว้ก่อน
+        if (hoverOverlay != null) hoverOverlay.alpha = 0f;
     }
 
     void Update()
     {
-        // 🟢 ทำให้ปุ่มขยับและขยายอย่างนุ่มนวลตลอดเวลา
+        // 1. ขยับปุ่มและขยายขนาด
         rectTransform.localPosition = Vector3.Lerp(rectTransform.localPosition, targetPosition, Time.unscaledDeltaTime * animationSpeed);
         rectTransform.localScale = Vector3.Lerp(rectTransform.localScale, targetScale, Time.unscaledDeltaTime * animationSpeed);
+
+        // 🟢 2. เฟดขอบ Overlay ให้ค่อยๆ โผล่หรือจางหายอย่างนุ่มนวล
+        if (hoverOverlay != null)
+        {
+            hoverOverlay.alpha = Mathf.Lerp(hoverOverlay.alpha, targetAlpha, Time.unscaledDeltaTime * animationSpeed);
+        }
     }
 
-    // 🟢 เมื่อเมาส์วางบนปุ่ม
     public void OnPointerEnter(PointerEventData eventData) { DoHover(true); }
-    // 🟢 เมื่อเมาส์ออกจากปุ่ม
     public void OnPointerExit(PointerEventData eventData) { DoHover(false); }
-    // 🟢 สำหรับการใช้คีย์บอร์ดหรือจอยเลื่อนมาที่ปุ่ม
     public void OnSelect(BaseEventData eventData) { DoHover(true); }
     public void OnDeselect(BaseEventData eventData) { DoHover(false); }
 
@@ -46,26 +56,27 @@ public class MenuButtonEffect : MonoBehaviour, IPointerEnterHandler, IPointerExi
     {
         if (isEntering)
         {
-            // ตั้งเป้าหมายให้ยื่นออกไปทางขวา และขยายใหญ่
             targetPosition = originalPosition + new Vector3(moveDistance, 0, 0);
             targetScale = originalScale * scaleMultiplier;
-            
-            // (ใส่เสียง Sound Effect ตอน Hover ตรงนี้ได้เลยครับ)
+            targetAlpha = 1f; // 🟢 สั่งโชว์ขอบ (Fade In)
         }
         else
         {
-            // กลับคืนค่าเดิม
             targetPosition = originalPosition;
             targetScale = originalScale;
+            targetAlpha = 0f; // 🟢 สั่งซ่อนขอบ (Fade Out)
         }
     }
 
-    // กันเหนียว: ถ้าปุ่มโดนปิดการใช้งาน ให้มันกลับไปค่าเดิมทันที
     void OnDisable()
     {
+        // รีเซ็ตค่าทั้งหมดตอนโดนปิดหน้าต่าง กันบั๊กค้าง
         rectTransform.localPosition = originalPosition;
         rectTransform.localScale = originalScale;
         targetPosition = originalPosition;
         targetScale = originalScale;
+        
+        if (hoverOverlay != null) hoverOverlay.alpha = 0f;
+        targetAlpha = 0f;
     }
 }
