@@ -22654,6 +22654,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Maris
       objectReference: {fileID: 0}
+    - target: {fileID: 7720628781297781979, guid: aa89823eab911854a81b2bf2a6c0887f, type: 3}
+      propertyPath: m_Interpolate
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -22997,6 +23001,10 @@ PrefabInstance:
     - target: {fileID: 3080723731482233955, guid: 1a9230159de87c7448e1054a276b7b46, type: 3}
       propertyPath: groundCheckRadius
       value: 0.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 5964471946736320461, guid: 1a9230159de87c7448e1054a276b7b46, type: 3}
+      propertyPath: m_Interpolate
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6848107157131165526, guid: 1a9230159de87c7448e1054a276b7b46, type: 3}
       propertyPath: m_Name
