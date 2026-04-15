@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 3aae6ab61a8aba64db30c12c960e0b2c
+guid: 9491237acfd843140b4c5670eb3552fc
 ScriptedImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -102,7 +102,7 @@ ScriptedImporter:
     generateIndividualEvents: 1
     generateSpriteAtlas: 1
   importFileNodeState: 1
-  platformSettingsDirtyTick: 639115776290554323
+  platformSettingsDirtyTick: 639118311653241930
   textureAssetName: 
   singleSpriteImportData:
   - name: 
@@ -127,9 +127,30 @@ ScriptedImporter:
     tessellationDetail: 0
     uvTransform: {x: 0, y: 0}
   animatedSpriteImportData:
-  - name: '!'
+  - name: Ingame_UI
     originalName: 
-    pivot: {x: 0.5714286, y: -0.15384616}
+    pivot: {x: 1.5686275, y: -1.4166667}
+    alignment: 9
+    border: {x: 0, y: 0, z: 0, w: 0}
+    customData: 
+    rect:
+      serializedVersion: 2
+      x: 4
+      y: 30
+      width: 153
+      height: 12
+    spriteID: f9dfcf7a0a0008a46b7d16c24c909663
+    spriteBone: []
+    spriteOutline: []
+    vertices: []
+    spritePhysicsOutline: []
+    indices: 
+    edges: []
+    tessellationDetail: 0
+    uvTransform: {x: 4, y: 30}
+  - name: Frame_0
+    originalName: 
+    pivot: {x: 1.5384616, y: -0.77777773}
     alignment: 9
     border: {x: 0, y: 0, z: 0, w: 0}
     customData: 
@@ -137,9 +158,9 @@ ScriptedImporter:
       serializedVersion: 2
       x: 4
       y: 4
-      width: 7
-      height: 13
-    spriteID: ee3440115ddae4a46b5bc2f65ba89c58
+      width: 156
+      height: 18
+    spriteID: 033b76304c76d494880ce1e24f5518f4
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -149,7 +170,7 @@ ScriptedImporter:
     tessellationDetail: 0
     uvTransform: {x: 4, y: 4}
   spriteSheetImportData:
-  - name: '!_0'
+  - name: Ingame_UI_0
     originalName: 
     pivot: {x: 0.5, y: 0.5}
     alignment: 0
@@ -157,11 +178,11 @@ ScriptedImporter:
     customData: 
     rect:
       serializedVersion: 2
-      x: 3
-      y: 25
-      width: 9
-      height: 15
-    spriteID: 0356e52cb3598f64793242924ec7f5c9
+      x: 4
+      y: 30
+      width: 153
+      height: 12
+    spriteID: 94454c3a770baed48923ae10c9129b13
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -170,7 +191,7 @@ ScriptedImporter:
     edges: []
     tessellationDetail: 0
     uvTransform: {x: 0, y: 0}
-  - name: '!_1'
+  - name: Ingame_UI_1
     originalName: 
     pivot: {x: 0.5, y: 0.5}
     alignment: 0
@@ -178,11 +199,11 @@ ScriptedImporter:
     customData: 
     rect:
       serializedVersion: 2
-      x: 3
-      y: 3
-      width: 16
-      height: 16
-    spriteID: 8df20ac390df45f4f8f561da96bfe6da
+      x: 4
+      y: 4
+      width: 156
+      height: 18
+    spriteID: 7fb26c85c65104f48a267b189861d88b
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -195,34 +216,34 @@ ScriptedImporter:
   asepriteLayers:
   - layerIndex: 0
     uuid:
-      value0: 372029309
+      value0: 55267506
       value1: 0
       value2: 0
       value3: 0
     guid: 0
-    name: '!'
+    name: Ingame_UI
     layerFlags: 0
     layerType: 0
     blendMode: 0
     cells:
-    - name: Frame_0
-      frameIndex: 0
-      additiveSortOrder: 0
-      cellRect:
-        x: 4
-        y: 2
-        width: 7
-        height: 13
-      spriteId: ee3440115ddae4a46b5bc2f65ba89c58
     - name: Frame_1
       frameIndex: 1
       additiveSortOrder: 0
       cellRect:
-        x: 1
-        y: 1
-        width: 14
-        height: 14
-      spriteId: 388c064555ff86f4ca25e808931f2c12
+        x: 0
+        y: 17
+        width: 153
+        height: 12
+      spriteId: f9dfcf7a0a0008a46b7d16c24c909663
+    - name: Frame_0
+      frameIndex: 0
+      additiveSortOrder: 0
+      cellRect:
+        x: 0
+        y: 14
+        width: 156
+        height: 18
+      spriteId: 033b76304c76d494880ce1e24f5518f4
     linkedCells: []
     tileCells: []
     tileSetIndex: 0
@@ -268,5 +289,5 @@ ScriptedImporter:
   generatePhysicsShape: 0
   secondarySpriteTextures: []
   spritePackingTag: 
-  canvasSize: {x: 16, y: 16}
-  previousTextureSize: {x: 32, y: 64}
+  canvasSize: {x: 480, y: 270}
+  previousTextureSize: {x: 256, y: 64}

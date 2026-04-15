@@ -109,8 +109,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NewMonoBehaviourScript
   type: 1
-  maxHealth: 3
-  damage: 1
+  maxHealth: 4
+  damage: 2
   speed: 2
   detectionRange: 9
   safeDistance: 3
@@ -398,5 +398,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 776705ab6682de24a8ff7092405b8371, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHitbox
-  damage: 1
+  damage: 2
   hitSparkPrefab: {fileID: 0}

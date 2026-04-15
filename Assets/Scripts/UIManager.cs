@@ -6,13 +6,15 @@ public class UIManager : MonoBehaviour
 {
     public static UIManager Instance; 
 
-    [Header("Health Bar UI (อัปเกรดใหม่)")]
-    public Slider healthSlider;      // หลอดเลือดจริง (สีแดง)
-    public Slider easeHealthSlider;  // หลอดเลือดตามหลัง (สีขาว/เหลือง)
-    public float lerpSpeed = 5f;     // ความเร็วในการไหลของหลอดเลือดตามหลัง
+    [Header("Health Bar UI (Image Filled)")]
+    public Image healthFill;      // 🟢 ลาก Image เลือดสีแดงมาใส่
+    public Image easeHealthFill;  // 🟢 ลาก Image เลือดสีขาว (ที่วิ่งตาม) มาใส่
+    public float lerpSpeed = 5f;  // ความเร็วในการไหลของหลอดเลือดตามหลัง
+
+    private float targetHealthPercent = 1f; // เก็บค่า % เลือดเป้าหมาย (0.0 ถึง 1.0)
 
     [Header("Skill Cooldown UI")]
-    public Image swordCooldownFill;  // 🟢 ลาก Image ที่ปรับ Image Type เป็น Filled มาใส่
+    public Image swordCooldownFill;  
 
     [Header("Game Over UI")]
     public UIPanelTransition gameOverPanel; 
@@ -35,35 +37,34 @@ public class UIManager : MonoBehaviour
 
     void Update()
     {
-        // 🟢 1. ทำแอนิเมชันหลอดเลือดค่อยๆ ลดตาม (Ease Health)
-        if (healthSlider != null && easeHealthSlider != null)
+        // 🟢 1. ทำแอนิเมชันหลอดเลือดสีขาวค่อยๆ ลดตาม (Ease Health)
+        if (easeHealthFill != null && healthFill != null)
         {
-            if (healthSlider.value != easeHealthSlider.value)
+            // ถ้าหลอดสียังไม่เท่ากัน ให้มันค่อยๆ ไหลไปหาเป้าหมาย
+            if (easeHealthFill.fillAmount != targetHealthPercent)
             {
-                easeHealthSlider.value = Mathf.Lerp(easeHealthSlider.value, healthSlider.value, lerpSpeed * Time.deltaTime);
+                easeHealthFill.fillAmount = Mathf.Lerp(easeHealthFill.fillAmount, targetHealthPercent, lerpSpeed * Time.deltaTime);
             }
         }
 
         // 🟢 2. อัปเดตคูลดาวน์ดาบแบบเรียลไทม์
         if (swordCooldownFill != null && player != null)
         {
-            // ถ้าถือดาบอยู่ ให้หลอดสว่างและเต็ม / ถ้าปาไปแล้ว ให้หลอดค่อยๆ ชาร์จ
             swordCooldownFill.fillAmount = PlayerController.isArmed ? 1f : player.GetSwordCooldownPercentage();
-            
-            // ทำให้สีซีดลงตอนที่ยังคูลดาวน์ไม่เสร็จ
             swordCooldownFill.color = swordCooldownFill.fillAmount < 1f ? new Color(1, 1, 1, 0.5f) : Color.white;
         }
     }
 
-    // 🟢 อัปเกรด: รับค่า maxHealth มาด้วยเพื่อตั้งขนาดหลอด
+    // 🟢 อัปเกรด: รับค่า maxHealth มาคำนวณเปอร์เซ็นต์
     public void UpdateHealth(int currentHealth, int maxHealth)
     {
-        if (healthSlider != null)
+        // คำนวณเลือดเป็นเปอร์เซ็นต์ (ต้องใส่ float ไม่งั้นหารกันจะได้ 0)
+        targetHealthPercent = (float)currentHealth / maxHealth;
+        
+        if (healthFill != null)
         {
-            healthSlider.maxValue = maxHealth;
-            healthSlider.value = currentHealth;
-            
-            if (easeHealthSlider != null) easeHealthSlider.maxValue = maxHealth;
+            // หลอดแดง ลดฮวบทันที
+            healthFill.fillAmount = targetHealthPercent;
         }
     }
 

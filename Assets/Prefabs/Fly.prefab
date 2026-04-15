@@ -110,7 +110,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBehavior
   type: 3
   maxHealth: 2
-  damage: 1
+  damage: 2
   speed: 4
   detectionRange: 8
   safeDistance: 3
@@ -119,6 +119,12 @@ MonoBehaviour:
   wanderRadius: 3
   wanderInterval: 2
   gracePeriod: 1.5
+  alertIcon: {fileID: 0}
+  obstacleLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  wallCheckDist: 1
+  panicDuration: 5
   projectilePrefab: {fileID: 2207432081361763248, guid: fcbb636c311f7d746a6284624343ce0d, type: 3}
   firePoint: {fileID: 2925379887226749773}
   fireRate: 1.5

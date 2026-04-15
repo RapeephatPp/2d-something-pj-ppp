@@ -308,7 +308,7 @@ MonoBehaviour:
   animator: {fileID: 0}
   comboResetTime: 1.2
   fullComboCooldown: 0.5
-  maxHealth: 5
+  maxHealth: 20
   currentHealth: 0
   hitboxCombo1: {fileID: 0}
   hitboxCombo2: {fileID: 0}
@@ -323,6 +323,7 @@ MonoBehaviour:
     m_Bits: 256
   thrownSwordPrefab: {fileID: 0}
   throwPoint: {fileID: 0}
+  throwCooldown: 1
 --- !u!61 &5373598469833144271
 BoxCollider2D:
   m_ObjectHideFlags: 0

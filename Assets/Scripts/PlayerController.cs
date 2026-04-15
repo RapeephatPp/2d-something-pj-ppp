@@ -49,6 +49,7 @@ public class PlayerController : MonoBehaviour
 
     public float dashRange = 7f; 
     public float dashSpeed = 15f;
+    public float targetDashSpeed = 10f;
     public float dashCooldown = 1.5f;
     private float nextDashTime = 0f;
     private bool isTargetDashing = false;
@@ -102,7 +103,7 @@ public class PlayerController : MonoBehaviour
     
     // 🟢 [เพิ่มกลับมาแล้ว!] ตัวแปรเลือดที่เผลอลบไป
     [Header("Health Settings")]
-    public int maxHealth = 5;
+    public int maxHealth = 20;
     public int currentHealth;
 
     [Header("Hitbox Objects")]
@@ -136,6 +137,7 @@ public class PlayerController : MonoBehaviour
 
     private void Start()
     {   
+        hasThrownSword = false;
         if (gameObject.name.Contains("Maris") && !gameObject.name.Contains("Sword")) 
         {
             isArmed = false;
@@ -685,13 +687,29 @@ public class PlayerController : MonoBehaviour
         Transform closest = null;
         float minDistance = Mathf.Infinity;
 
+        Vector2 rayOrigin = new Vector2(transform.position.x, transform.position.y + 0.5f);
+        
+        // 🟢 1. หาว่าตอนนี้ตัวละครหันหน้าไปทางไหน (1 = ขวา, -1 = ซ้าย)
+        float currentFacingDir = Mathf.Sign(transform.localScale.x);
+
         foreach (Collider2D enemy in enemies)
         {
+            // 🟢 2. เช็คว่าศัตรูอยู่ฝั่งเดียวกับที่เราหันหน้าอยู่ไหม
+            float dirToEnemyX = enemy.transform.position.x - transform.position.x;
+            
+            // ถ้าระยะห่างเกิน 0.1 (กันบั๊กยืนซ้อนทับกัน) และอยู่คนละฝั่งกับที่หันหน้า -> ข้ามตัวนี้ไปเลย!
+            if (Mathf.Abs(dirToEnemyX) > 0.1f && Mathf.Sign(dirToEnemyX) != currentFacingDir) 
+            {
+                continue; 
+            }
+
             float dist = Vector2.Distance(transform.position, enemy.transform.position);
             if (dist < minDistance)
             {
-                Vector2 dir = (enemy.transform.position - transform.position).normalized;
-                RaycastHit2D hit = Physics2D.Raycast(transform.position, dir, dist, obstacleLayer);
+                Vector2 enemyTarget = new Vector2(enemy.transform.position.x, enemy.transform.position.y + 0.5f);
+                Vector2 dir = (enemyTarget - rayOrigin).normalized;
+                
+                RaycastHit2D hit = Physics2D.Raycast(rayOrigin, dir, dist, obstacleLayer);
                 
                 if (hit.collider == null) 
                 {
@@ -710,19 +728,43 @@ public class PlayerController : MonoBehaviour
 
         Vector2 startPos = transform.position;
         Vector2 dirToTarget = (target.position - transform.position).normalized;
-        Vector2 targetPos = (Vector2)target.position - (dirToTarget * 1.0f); 
+        
+        float facingDir = Mathf.Sign(dirToTarget.x);
+        if (facingDir == 0) facingDir = 1f;
+        Vector3 currentScale = transform.localScale;
+        currentScale.x = facingDir * Mathf.Abs(currentScale.x);
+        transform.localScale = currentScale;
 
-        float dist = Vector2.Distance(startPos, targetPos);
-        float duration = dist / dashSpeed;
+        float dist = Vector2.Distance(startPos, target.position);
+        float actualDashDist = Mathf.Max(0.1f, dist - 1.0f); 
+        Vector2 targetPos = startPos + (dirToTarget * actualDashDist);
+
+        // 🟢 แก้บั๊กมุมเพี้ยนเวลาพุ่งไปด้านซ้าย:
+        // ค้นหามุมด้วย Atan2 แต่ให้คูณทิศทาง (facingDir) ที่หันหน้าอีกที เพื่อชดเชยการพลิกสเกลของรูปภาพ
+        float dashAngle = Mathf.Atan2(dirToTarget.y, Mathf.Abs(dirToTarget.x)) * Mathf.Rad2Deg * facingDir;
+        transform.rotation = Quaternion.Euler(0, 0, dashAngle);
+
+        float duration = actualDashDist / targetDashSpeed; 
         float time = 0;
 
         float originalGravity = rb.gravityScale;
         rb.gravityScale = 0; 
         rb.linearVelocity = Vector2.zero;
 
+        float ghostSpawnInterval = duration / trailGhosts; 
+        float ghostTimer = 0f;
+
         while (time < duration)
         {
             if (target == null) break; 
+            
+            ghostTimer -= Time.fixedDeltaTime;
+            if (ghostTimer <= 0)
+            {
+                SpawnDashGhost();
+                ghostTimer = ghostSpawnInterval; 
+            }
+
             Vector2 newPos = Vector2.Lerp(startPos, targetPos, time / duration);
             rb.MovePosition(newPos);
             time += Time.fixedDeltaTime;
@@ -742,6 +784,8 @@ public class PlayerController : MonoBehaviour
         
         if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.25f, 0.2f); 
 
+        // จบการพุ่ง คืนองศาให้กลับมายืนตรงๆ 
+        transform.rotation = Quaternion.identity;
         rb.gravityScale = originalGravity; 
         isTargetDashing = false;
         if (animator != null) animator.SetBool("isDashing", false);
