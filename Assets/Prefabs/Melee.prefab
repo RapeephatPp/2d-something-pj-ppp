@@ -115,6 +115,9 @@ MonoBehaviour:
   detectionRange: 9
   safeDistance: 3
   retreatTime: 2
+  isStationaryShooter: 0
+  standGroundChance: 0.3
+  aimTime: 0.5
   fleeToSafeZoneChance: 0.5
   wanderRadius: 3
   wanderInterval: 2

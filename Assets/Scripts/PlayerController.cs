@@ -121,6 +121,13 @@ public class PlayerController : MonoBehaviour
     public Transform throwPoint;         
     public float throwCooldown = 1.0f;    // เวลาคูลดาวน์หลังรับดาบกลับมา
     private static float nextThrowTime = 0f;     // ตัวจับเวลา
+    
+    [Header("Death Effects (ระเบิดเลือด)")]
+    public GameObject bloodPrefab;      // 🟢 ลาก Prefab เลือดมาใส่ตรงนี้
+    public int minBloodSpawns = 10;     // ขั้นต่ำหยดเลือด
+    public int maxBloodSpawns = 20;     // สูงสุดหยดเลือด
+    public float bloodSpread = 1.5f;    // รัศมีการกระจาย
+    public GameObject droppedSwordPrefab; // 🟢 เพิ่มตัวแปรนี้สำหรับดาบที่จะกระเด็นออกมา
 
     private Camera mainCam; 
 
@@ -142,6 +149,9 @@ public class PlayerController : MonoBehaviour
         {
             isArmed = false;
         }
+        
+        // 🟢 เปิดการมองเห็นกลับมาเสมอตอนเริ่มเกม/เกิดใหม่
+        if (spriteRenderer != null) spriteRenderer.enabled = true;
         
         currentHealth = maxHealth;
         currentGuardGauge = maxGuardGauge;
@@ -943,19 +953,57 @@ public class PlayerController : MonoBehaviour
         isTargetDashing = false;
         isAttacking = false;
 
+        // 1. หยุดเวลาและสั่นกล้อง
+        TriggerHitStop(0.2f);
+        if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.5f, 0.4f);
+
+        // 🟢 2. เพิ่มใหม่: ถ้าถือดาบอยู่ (Armed) ให้เสกดาบดรอปออกมา
+        if (isArmed && droppedSwordPrefab != null)
+        {
+            GameObject droppedSword = Instantiate(droppedSwordPrefab, transform.position, transform.rotation);
+            Rigidbody2D swordRb = droppedSword.GetComponent<Rigidbody2D>();
+            if (swordRb != null)
+            {
+                // สุ่มทิศทางและแรงกระเด็น (ให้เด้งสูงกว่าเลือดนิดหน่อยจะสวยมาก)
+                Vector2 popDir = new Vector2(Random.Range(-4f, 4f), Random.Range(5f, 8f));
+                swordRb.AddForce(popDir, ForceMode2D.Impulse);
+                swordRb.AddTorque(Random.Range(-600f, 600f)); // หมุนติ้วๆ
+            }
+        }
+
+        // 3. ปิดรูปตัวละครและกล่องชน
+        if (spriteRenderer != null) spriteRenderer.enabled = false;
+        Collider2D myCol = GetComponent<Collider2D>();
+        if (myCol != null) myCol.enabled = false;
+
+        // 4. เสกเลือดระเบิดตามปกติ
+        if (bloodPrefab != null)
+        {
+            int bloodAmount = Random.Range(minBloodSpawns, maxBloodSpawns + 1);
+            for (int i = 0; i < bloodAmount; i++)
+            {
+                Vector2 randomOffset = new Vector2(Random.Range(-bloodSpread, bloodSpread), Random.Range(-bloodSpread, bloodSpread));
+                Instantiate(bloodPrefab, transform.position + (Vector3)randomOffset, Quaternion.identity);
+            }
+        }
+
         StartCoroutine(GameOverSequence());
     }
 
     private IEnumerator GameOverSequence()
     {
-        // 1. รอให้ตัวละครลงไปนอนจมกองเลือดสัก 1 วินาที ให้มี Game Feel
-        yield return new WaitForSeconds(1.0f);
+        // 1. รอให้ผู้เล่นซึมซับความตาย (ดูเลือดกระเด็น) สัก 1.5 วินาที
+        yield return new WaitForSeconds(1.5f);
         
         // 2. เรียกหน้าต่าง UI Game Over ขึ้นมา
         if (UIManager.Instance != null)
         {
             UIManager.Instance.ShowGameOver();
         }
+        
+        // คืนค่ากล่องชนเผื่อไว้ตอนโหลดฉากใหม่
+        Collider2D myCol = GetComponent<Collider2D>();
+        if (myCol != null) myCol.enabled = true;
     }
     
     private void OnDrawGizmosSelected()

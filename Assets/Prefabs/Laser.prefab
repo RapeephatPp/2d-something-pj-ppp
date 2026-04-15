@@ -231,7 +231,7 @@ MonoBehaviour:
   baseWidth: 0.15
   pulseAmplitude: 0.05
   pulseSpeed: 15
-  hitSparkPrefab: {fileID: 0}
+  hitSparkPrefab: {fileID: 6298320789319968417, guid: 804338d5506aa1746955ba27d58ccaa0, type: 3}
   isBlinking: 0
   timeOn: 2
   timeOff: 2

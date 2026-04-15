@@ -853,6 +853,7 @@ MonoBehaviour:
   isInvincible: 0
   dashRange: 15
   dashSpeed: 10
+  targetDashSpeed: 10
   dashCooldown: 1.5
   trailGhosts: 8
   ghostFadeDuration: 0.5
@@ -892,6 +893,11 @@ MonoBehaviour:
   thrownSwordPrefab: {fileID: 2296640474114385898, guid: 6f75a73d7d35d964fabad74a22f573e8, type: 3}
   throwPoint: {fileID: 8148474070314883569}
   throwCooldown: 1
+  bloodPrefab: {fileID: 6899070655563539901, guid: 02f312b0b84332444b19308d834f40fe, type: 3}
+  minBloodSpawns: 10
+  maxBloodSpawns: 20
+  bloodSpread: 1.5
+  droppedSwordPrefab: {fileID: 2296640474114385898, guid: eadb101c904b257459d75a28e4bef724, type: 3}
 --- !u!61 &8844600889642850822
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -961,7 +967,7 @@ Rigidbody2D:
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
-  m_Interpolate: 0
+  m_Interpolate: 1
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4

@@ -5,12 +5,12 @@ public class EnemyBehavior : MonoBehaviour
 {
     public enum EnemyType 
     { 
-        Passive,            // ไม่สู้ วิ่งหนีเมื่อเห็นดาบ
-        MeleeHostile,       // วิ่งเข้าหา บาดเจ็บแล้วถอย
-        RangedHostile,      // รักษาระยะห่าง คอยยิง
-        FlyingHostile,      // บินยิงกวนผู้เล่น
-        StationaryTarget,   // อยู่นิ่งๆ ให้ผู้เล่นกด F พุ่งหา (ไม่ทำดาเมจ)
-        BigChaser           // อมตะ ไล่ล่าอย่างเดียว
+        Passive,            
+        MeleeHostile,       
+        RangedHostile,      // 🟢 ตัวนี้แหละที่เราจะอัปเกรด
+        FlyingHostile,      
+        StationaryTarget,   
+        BigChaser           
     }
     
     public EnemyType type;
@@ -22,34 +22,53 @@ public class EnemyBehavior : MonoBehaviour
     public float speed = 2f;
     
     [Header("Detection & Movement")]
-    public float detectionRange = 5f;   // ระยะมองเห็นผู้เล่น
-    public float safeDistance = 3f;     // ระยะห่างที่ Ranged จะพยายามรักษาไว้
-    public float retreatTime = 2f;      // เวลาหนีเมื่อ Melee บาดเจ็บ
+    public float detectionRange = 5f;   
+    public float safeDistance = 3f;     
+    public float retreatTime = 2f;      
     private bool isRetreating = false;
+
+    // ==========================================
+    // 🟢 [อัปเกรดใหม่] ระบบ Ranged แบบจัดเต็ม
+    // ==========================================
+    [Header("Ranged Hostile Settings")]
+    [Tooltip("ติ๊กถูก = ยืนนิ่งอยู่กับที่ (สไนเปอร์), เอาออก = เดินไปมาและหนีเมื่อเข้าใกล้ (พลปืน)")]
+    public bool isStationaryShooter = false; 
     
+    [Tooltip("โอกาสที่จะไม่วิ่งหนี แต่ยืนยิงแลก (0.0 ถึง 1.0) เช่น 0.3 = โอกาส 30%")]
+    public float standGroundChance = 0.3f;   
+    
+    [Tooltip("เวลาง้างปืน (Prepare To Shoot) ก่อนกระสุนออก")]
+    public float aimTime = 0.5f;
+
+    private bool isRangedAiming = false;
+    private bool willStandGround = false;
+    private float nextKiteDecisionTime = 0f;
+
+    // ==========================================
+
     [Header("Passive NPC Settings")]
-    public float fleeToSafeZoneChance = 0.5f; // โอกาส 50% ที่จะวิ่งกลับบ้าน
-    public float wanderRadius = 3f;           // รัศมีระยะการเดินเล่นรอบๆ จุดเกิด
-    public float wanderInterval = 2f;         // เวลาที่ใช้พักก่อนเดินไปจุดต่อไป
+    public float fleeToSafeZoneChance = 0.5f; 
+    public float wanderRadius = 3f;           
+    public float wanderInterval = 2f;         
     
-    private float spawnTime; // 🟢 เก็บเวลาตอนที่เกิดมา
-    public float gracePeriod = 1.5f; // 🟢 เวลาตั้งตัว (วินาที) ที่จะไม่สนใจผู้เล่น
+    private float spawnTime; 
+    public float gracePeriod = 1.5f; 
     
     [Header("Passive AI Enhancements")]
-    public GameObject alertIcon;        // 🟢 ลากรูประฆัง/เครื่องหมายตกใจมาใส่ช่องนี้
-    public LayerMask obstacleLayer;     // 🟢 เลเยอร์ที่เป็นกำแพง/พื้น (เอาไว้เช็คทางตัน)
-    public float wallCheckDist = 1f;    // 🟢 ระยะยิงเรดาร์เช็คกำแพง
+    public GameObject alertIcon;        
+    public LayerMask obstacleLayer;     
+    public float wallCheckDist = 1f;    
     public float panicDuration = 5f;
     
-    private Transform safeZone;               // จุดเกิด/จุดหนีกลับ
+    private Transform safeZone;               
     private Vector2 startPosition;
     private Vector2 wanderTarget;
     private float wanderTimer;
     private bool isFleeingToSafeZone = false;
-    private bool hasRolledFleeChance = false; // เช็คเพื่อไม่ให้ทอยเต๋าซ้ำทุกเฟรม
+    private bool hasRolledFleeChance = false; 
     
-    private float panicTimer = 0f;           // เอาไว้จับเวลาหนี
-    private float currentFleeDirection = 1f; // ็อคทิศทางการวิ่งหนี จะได้ไม่สั่น
+    private float panicTimer = 0f;           
+    private float currentFleeDirection = 1f; 
     private bool isCornered = false;
     private float corneredTimer = 0f;
     private bool isChatting = false;
@@ -58,48 +77,47 @@ public class EnemyBehavior : MonoBehaviour
     private bool isAlerted = false;
 
     [Header("Combat Settings")]
-    public GameObject projectilePrefab; // กระสุนสำหรับ Range/Fly
+    public GameObject projectilePrefab; 
     public Transform firePoint;
     public float fireRate = 1.5f;
     private float nextFireTime;
     
     [Header("Melee Game Feel")]
-    public float lungeRange = 2.5f;      // ระยะที่จะเริ่มง้างฟัน
-    public float telegraphTime = 0.5f;   // เวลาง้างดาบ (ยิ่งเยอะ ผู้เล่นยิ่งมีเวลาหลบ)
-    public float lungeSpeedMultiplier = 3f; // ความแรงตอนพุ่งฟัน (เร็วกว่าเดินปกติ 3 เท่า)
-    public float meleeCooldown = 1.5f;   // เวลาพักเหนื่อยหลังฟันเสร็จ
+    public float lungeRange = 2.5f;      
+    public float telegraphTime = 0.5f;   
+    public float lungeSpeedMultiplier = 3f; 
+    public float meleeCooldown = 1.5f;   
 
     private bool isPreparingMelee = false;
     private bool isLunging = false;
     private float nextMeleeTime;
     
     [Header("Drone (Flying) Settings")]
-    public float hoverHeight = 3f;          // ความสูงตอนลอยเหนือผู้เล่น
-    public float hoverOffset = 2.5f;        // ระยะเยื้องซ้ายขวา (ไม่ให้อยู่ตรงหัวเป๊ะๆ จะได้ยิงเฉียงๆ)
-    public float bobFrequency = 2f;         // ความเร็วในการกระเพื่อมขึ้นลง
-    public float bobAmplitude = 0.4f;       // ความสูงที่กระเพื่อม
-    public float flySmoothTime = 0.4f;      // ความนุ่มนวลตอนบินตาม (ยิ่งเยอะยิ่งหนืด)
-    public float droneRecoilForce = 1.5f;   // แรงถีบตอนยิงปืน
+    public float hoverHeight = 3f;          
+    public float hoverOffset = 2.5f;        
+    public float bobFrequency = 2f;         
+    public float bobAmplitude = 0.4f;       
+    public float flySmoothTime = 0.4f;      
+    public float droneRecoilForce = 1.5f;   
     
     [Header("Drone Game Feel")]
-    public float tiltAngle = 15f;           // องศาการเอียงซ้ายขวาตอนบิน
-    public float tiltSmoothTime = 0.15f;    // ความนุ่มนวลตอนเอียงตัว
-    public bool invertFacing = false;       // 🟢 ติ๊กถูกอันนี้ใน Inspector ถ้าโดรนคุณหันหน้าผิดฝั่ง!
+    public float tiltAngle = 15f;           
+    public float tiltSmoothTime = 0.15f;    
+    public bool invertFacing = false;       
     
-    private float currentTiltVelocity;      // เอาไว้คำนวณเอียงตัว
-
-    private Vector2 flyVelocity;            // ตัวแปรซ่อนไว้ใช้คำนวณ SmoothDamp
+    private float currentTiltVelocity;      
+    private Vector2 flyVelocity;            
     private bool isPreparingToShoot = false;
 
     [Header("References")]
-    public Transform player;            // ลาก Player มาใส่ หรือจะหาจาก Tag ใน Start ก็ได้// Prefab เลือดตอนตาย
-    public Animator animator; // 🟢 เพิ่มบรรทัดนี้ เพื่อรอรับ Animator ของศัตรู
+    public Transform player;            
+    public Animator animator; 
     
     [Header("Blood Splatter Settings")]
-    public GameObject bloodPrefab;      // Prefab เลือดตอนตาย
-    public int minBloodSpawns = 3;      // จำนวนเลือดขั้นต่ำที่จะกระเด็นออกมา
-    public int maxBloodSpawns = 6;      // จำนวนเลือดสูงสุด
-    public float bloodSpread = 1.5f;    // รัศมีการกระจายตัวของเลือด (ยิ่งเยอะยิ่งกระจายกว้าง)
+    public GameObject bloodPrefab;      
+    public int minBloodSpawns = 3;      
+    public int maxBloodSpawns = 6;      
+    public float bloodSpread = 1.5f;    
     public float bloodHeightOffset = 1.0f;
     
     [Header("Chaser Settings")]
@@ -107,14 +125,15 @@ public class EnemyBehavior : MonoBehaviour
     private bool isChasing = false;
     
     [Header("AI Spacing (Anti-Overlap)")]
-    public float separationRadius = 0.8f; // 🟢 ระยะวงกลมเช็คมอนสเตอร์ตัวอื่น
-    public float separationForce = 1.5f;  // 🟢 แรงผลักไม่ให้ยืนทับกัน
+    public float separationRadius = 0.8f; 
+    public float separationForce = 1.5f;  
 
     void Start()
     {   
         spawnTime = Time.time;
         currentHealth = maxHealth;
         startPosition = transform.position;
+        wanderTarget = transform.position;
         
         if (player == null)
         {
@@ -127,9 +146,7 @@ public class EnemyBehavior : MonoBehaviour
             isChasing = true;
         }
 
-        // 🟢 [เพิ่มใหม่] สั่งปิดการชนกันแบบฟิสิกส์ (ป้องกันศัตรูดันผู้เล่นจนลอย)
-        // ศัตรูจะพุ่งทะลุตัวเราได้ แต่ "กล่องดาบ" ของมันยังคงฟันโดนเราเสียเลือดอยู่ดี!
-        if (type == EnemyType.MeleeHostile || type == EnemyType.Passive)
+        if (type == EnemyType.MeleeHostile || type == EnemyType.Passive || type == EnemyType.RangedHostile)
         {
             Collider2D myCollider = GetComponent<Collider2D>();
             if (player != null && myCollider != null)
@@ -154,51 +171,186 @@ public class EnemyBehavior : MonoBehaviour
         
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
 
-        // 1. ให้มันคิดพฤติกรรมการเดินปกติก่อน
         switch (type)
         {
             case EnemyType.Passive: HandlePassive(distanceToPlayer); break;
             case EnemyType.MeleeHostile: HandleMeleeHostile(distanceToPlayer); break;
-            case EnemyType.RangedHostile: HandleRangedHostile(distanceToPlayer); break;
+            case EnemyType.RangedHostile: HandleRangedHostile(distanceToPlayer); break; // 🟢 เรียกใช้ Ranged แบบใหม่
             case EnemyType.FlyingHostile: HandleFlyingHostile(distanceToPlayer); break;
             case EnemyType.StationaryTarget: break;
             case EnemyType.BigChaser: HandleBigChaser(); break;
         }
 
-        // 🟢 2. [ย้ายมาไว้ตรงนี้!] พอเดินเสร็จปุ๊บ ค่อยมาเช็คว่าเดินทับเพื่อนไหม ถ้าทับให้ดีดออกทันที
         bool shouldSeparate = true;
-        if (type == EnemyType.Passive)
+        if (type == EnemyType.Passive) shouldSeparate = isAlerted || isFleeingToSafeZone; 
+        else if (type == EnemyType.StationaryTarget || type == EnemyType.RangedHostile) 
         {
-            // ถ้าเป็นตัว Passive ให้ผลักกัน "เฉพาะตอนกำลังหนีตกใจ" เท่านั้น
-            // เวลาเดินเล่นปกติจะได้เดินทะลุซ้อนกันได้
-            shouldSeparate = isAlerted || isFleeingToSafeZone; 
+            // ถ้าเป็นสไนเปอร์ ไม่ต้องโดนพลักกระเด็น
+            if (isStationaryShooter) shouldSeparate = false; 
         }
 
-        if (shouldSeparate && !isLunging && !isRetreating && !isPreparingMelee)
+        if (shouldSeparate && !isLunging && !isRetreating && !isPreparingMelee && !isRangedAiming)
         {
             SeparateFromOtherEnemies();
         }
     }
     
+    // ==========================================
+    // 🟢 NEW: ระบบตัดสินใจของศัตรูสายยิง (Ranged AI)
+    // ==========================================
+    void HandleRangedHostile(float distance)
+    {
+        // ถ้าง้างปืนอยู่ หรือโดนตีถอยหลัง ห้ามเดินหรือคิดอะไรทั้งนั้น
+        if (isRangedAiming || isRetreating) return; 
+
+        if (distance <= detectionRange)
+        {
+            // --- เจอผู้เล่นแล้ว ---
+            
+            // 1. ถ้าไม่ใช่สายยืนนิ่งๆ และผู้เล่นเข้ามาใกล้เกินไป (เข้าระยะ Safe Distance)
+            if (!isStationaryShooter && distance < safeDistance)
+            {
+                // ทอยลูกเต๋าตัดสินใจทุกๆ 2 วินาที ว่าจะ "หนี" หรือ "ยืนแลก"
+                if (Time.time > nextKiteDecisionTime)
+                {
+                    nextKiteDecisionTime = Time.time + 2f;
+                    willStandGround = (Random.value < standGroundChance); 
+                }
+
+                if (!willStandGround) 
+                {
+                    // ตัดสินใจหนี!
+                    MoveAwayFromPlayer();
+                    if (animator != null) animator.SetBool("isMoving", true);
+                    return; // ยกเลิกการยิงไปเลย มุ่งหน้าหนีอย่างเดียว
+                }
+            }
+
+            // 2. ถ้าถึงเวลายิง (และไม่ได้กำลังหนีอยู่)
+            if (Time.time >= nextFireTime)
+            {
+                StartCoroutine(RangedShootRoutine());
+            }
+            // 3. ถ้าอยู่นอกระยะยิง (ไกลไป) ให้ขยับเข้าหา
+            else if (!isStationaryShooter && distance > safeDistance + 1f)
+            {
+                MoveTowardsPlayer();
+                if (animator != null) animator.SetBool("isMoving", true);
+            }
+            // 4. ถ้าอยู่ในระยะพอดี และกำลังคูลดาวน์ปืน ให้ยืนรอและเล็งหน้าไปหาผู้เล่น
+            else
+            {
+                if (animator != null) animator.SetBool("isMoving", false);
+                FlipSprite(player.position.x);
+            }
+        }
+        else
+        {
+            // --- ไม่เจอผู้เล่น (อยู่นอกระยะสายตา) ---
+            if (!isStationaryShooter)
+            {
+                // ถ้าเป็นพลปืน ให้เดินลาดตระเวนเล่น
+                IdleWander(); 
+            }
+            else
+            {
+                // ถ้าเป็นสไนเปอร์ ก็ยืนนิ่งๆ เฝ้าจุด
+                if (animator != null) animator.SetBool("isMoving", false);
+            }
+        }
+    }
+
+    // 🟢 ระบบอนิเมชันตอนยิงปืน
+    // 🟢 ระบบอนิเมชันตอนยิงปืน (อัปเกรดป้องกันบั๊กลูป)
+    IEnumerator RangedShootRoutine()
+    {
+        isRangedAiming = true;
+        
+        if (animator != null) 
+        {
+            animator.SetBool("isMoving", false);
+            
+            // 🟢 ท่าไม้ตาย: สั่งล้าง Trigger เก่าที่อาจจะค้างอยู่ออกให้หมดก่อน!
+            animator.ResetTrigger("PrepareShoot");
+            animator.ResetTrigger("Shoot");
+        }
+
+        FlipSprite(player.position.x);
+        
+        // สั่งยกปืน
+        if (animator != null) animator.SetTrigger("PrepareShoot");
+        
+        // รอเวลาง้างปืน
+        yield return new WaitForSeconds(aimTime);
+
+        // เช็คเผื่อผู้เล่นตายหรือวาร์ปหายไปตอนง้างปืนพอดี
+        if (player == null || !player.gameObject.activeInHierarchy) 
+        {
+            isRangedAiming = false;
+            yield break;
+        }
+
+        // หันหน้าอัปเดตเป้าหมายอีกรอบก่อนลั่นไก
+        FlipSprite(player.position.x);
+
+        // สั่งลั่นไกปืน
+        if (animator != null) animator.SetTrigger("Shoot");
+        Shoot(); // เสกกระสุนบินออกไป
+
+        // รอแอนิเมชันยิงปืน (ดีดกลับ) ค้างแปปนึงก่อนกลับไปเดิน
+        yield return new WaitForSeconds(0.2f);
+
+        nextFireTime = Time.time + fireRate;
+        isRangedAiming = false;
+    }
+
+    // 🟢 ระบบเดินเล่นลาดตระเวน (ใช้ร่วมกันได้ทั้ง Passive และ Ranged)
+    // 🟢 ระบบเดินเล่นลาดตระเวน (อัปเกรดให้เดินๆ หยุดๆ เนียนขึ้น)
+    void IdleWander()
+    {
+        Vector2 centerPoint = safeZone != null ? (Vector2)safeZone.position : startPosition;
+        wanderTimer -= Time.deltaTime;
+
+        // ถ้าระยะห่างน้อยกว่า 0.1 แปลว่าเดินถึงเป้าหมายแล้ว ให้ "หยุดพัก"
+        if (Mathf.Abs(transform.position.x - wanderTarget.x) < 0.1f)
+        {
+            if (animator != null) animator.SetBool("isMoving", false); // หยุดสับขา กลับไปท่ายืนนิ่ง
+            
+            // ถ้าหมดเวลาพัก ค่อยสุ่มหาจุดหมายใหม่
+            if (wanderTimer <= 0)
+            {
+                float randomX = Random.Range(-wanderRadius, wanderRadius);
+                wanderTarget = new Vector2(centerPoint.x + randomX, transform.position.y);
+                wanderTimer = Random.Range(wanderInterval, wanderInterval + 2f);
+            }
+        }
+        else
+        {
+            // ถ้ายังไม่ถึงเป้าหมาย ให้ "เดินต่อไป"
+            if (animator != null) animator.SetBool("isMoving", true); // เล่นท่าเดิน
+            
+            Vector2 targetPosition = new Vector2(wanderTarget.x, transform.position.y);
+            transform.position = Vector2.MoveTowards(transform.position, targetPosition, (speed * 0.5f) * Time.deltaTime);
+            FlipSprite(wanderTarget.x);
+        }
+    }
+
+    // ==========================================
+    // โค้ดส่วนอื่นๆ ปล่อยไว้เหมือนเดิม (ถูกห่อรวมไว้ในคลาสนี้แล้ว)
+    // ==========================================
+
     void SeparateFromOtherEnemies()
     {
-        // ค้นหามอนสเตอร์ตัวอื่นที่อยู่ในระยะ
         Collider2D[] others = Physics2D.OverlapCircleAll(transform.position, separationRadius);
         foreach (Collider2D col in others)
         {
             if (col.gameObject != gameObject && col.CompareTag("Enemy"))
             {
-                // ดูว่าเพื่อนอยู่ฝั่งไหน
                 float dirX = Mathf.Sign(transform.position.x - col.transform.position.x);
-                
-                // ถ้าเกิดมาทับกันเป๊ะๆ ระดับมิลลิเมตร ให้สุ่มดีดคนละฝั่ง
                 if (Mathf.Abs(transform.position.x - col.transform.position.x) < 0.1f) 
                 {
                     dirX = Random.Range(0, 2) == 0 ? 1f : -1f;
                 }
-                
-                // 🟢 [อัปเกรด!] ใช้การ "บวกตำแหน่ง" (+ Vector3) ทับเข้าไปเลย 
-                // แบบนี้ต่อให้กำลังเดินอยู่ มันก็จะถูกไถออกข้างๆ อย่างเนียนๆ!
                 Vector3 pushVector = new Vector3(dirX * separationForce * Time.deltaTime, 0, 0);
                 transform.position += pushVector;
             }
@@ -208,46 +360,31 @@ public class EnemyBehavior : MonoBehaviour
     public void SetSafeZone(Transform zone)
     {
         safeZone = zone;
-        wanderTarget = transform.position; // เริ่มต้นด้วยการยืนที่เดิมก่อน
+        wanderTarget = transform.position; 
     }
-
-    // --- Behavior Methods ---
 
     void HandlePassive(float distance)
     {
         bool playerHasSword = PlayerController.isArmed; 
         bool isScared = distance <= detectionRange && playerHasSword;
 
-        // 🟢 1. ระบบตกใจเริ่มทำงาน
         if (isScared && !isAlerted)
         {
             isAlerted = true;
             isChatting = false; 
-            
-            // ล็อคทิศทางให้วิ่งไปฝั่งตรงข้ามผู้เล่น ทันทีที่ตกใจ!
             currentFleeDirection = Mathf.Sign(transform.position.x - player.position.x);
             if (currentFleeDirection == 0) currentFleeDirection = 1f;
-            
             StartCoroutine(ShowAlertIcon());
         }
 
-        // รีเฟรชเวลาหนีเรื่อยๆ ถ้าผู้เล่นยังตามติดอยู่ในระยะ
-        if (isScared) 
-        {
-            panicTimer = panicDuration;
-        }
+        if (isScared) panicTimer = panicDuration;
 
-        // 🟢 2. โหมดลดความกลัว (ถ้าวิ่งหนีจนพ้นระยะแล้ว)
         if (panicTimer > 0 && !isScared)
         {
             panicTimer -= Time.deltaTime;
-            if (panicTimer <= 0) 
-            {
-                isAlerted = false; // เลิกตกใจ กลับไปเดินชิล
-            }
+            if (panicTimer <= 0) isAlerted = false; 
         }
 
-        // 🟢 3. โหมดหนีตาย (หนีเพราะแพนิคอยู่ หรือกำลังหนีกลับหลุม)
         if (panicTimer > 0 || isFleeingToSafeZone)
         {
             if (animator != null) animator.SetBool("isMoving", true);
@@ -257,15 +394,11 @@ public class EnemyBehavior : MonoBehaviour
                 Vector2 targetPos = new Vector2(safeZone.position.x, transform.position.y);
                 transform.position = Vector2.MoveTowards(transform.position, targetPos, speed * 1.5f * Time.deltaTime);
                 FlipSprite(safeZone.position.x);
-
                 if (Mathf.Abs(transform.position.x - safeZone.position.x) < 0.2f) Destroy(gameObject); 
                 return;
             }
-            
-            // หนีแบบธรรมดา
             SmartFleeFromPlayer();
         }
-        // 🟢 4. โหมดชิล (เดินเล่น / คุย)
         else
         {
             hasRolledFleeChance = false;
@@ -289,44 +422,20 @@ public class EnemyBehavior : MonoBehaviour
 
     void SmartFleeFromPlayer()
     {
-        // 🟢 อัปเกรด: ใช้ทิศทางเดิม (currentFleeDirection) ที่ล็อคไว้ตอนตกใจ 
-        // ไม่ต้องคำนวณตำแหน่งผู้เล่นใหม่ตลอดเวลา มันจะได้ไม่สับสนเวลาวิ่งทะลุตัวผู้เล่น!
-        
         Vector2 rayOrigin = new Vector2(transform.position.x, transform.position.y + 0.5f);
         RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.right * currentFleeDirection, wallCheckDist, obstacleLayer);
         
-        if (hit.collider != null)
-        {
-            // ถ้าชนกำแพงปุ๊บ ให้หันหลังกลับ 180 องศา แล้ววิ่งหน้าตั้งต่อไปเลย
-            currentFleeDirection = -currentFleeDirection; 
-        }
+        if (hit.collider != null) currentFleeDirection = -currentFleeDirection; 
 
         Vector2 targetPos = new Vector2(transform.position.x + (currentFleeDirection * 5f), transform.position.y);
         transform.position = Vector2.MoveTowards(transform.position, targetPos, (speed * 1.5f) * Time.deltaTime);
         FlipSprite(targetPos.x);
     }
 
-    // 🟢 ระบบเดินเล่นหาเพื่อน
     void WanderAndLookForFriends()
     {
-        // 🟢 ถ้าไม่มีหลุม SafeZone ให้ใช้ตำแหน่งเริ่มต้นตอนวางในฉาก เป็นศูนย์กลางแทน! (แก้บั๊กยืนนิ่ง)
-        Vector2 centerPoint = safeZone != null ? (Vector2)safeZone.position : startPosition;
-        
-        if (animator != null) animator.SetBool("isMoving", true);
+        IdleWander(); // 🟢 เรียกใช้ระบบลาดตระเวนที่แยกไว้
 
-        wanderTimer -= Time.deltaTime;
-        if (wanderTimer <= 0 || Mathf.Abs(transform.position.x - wanderTarget.x) < 0.1f)
-        {
-            float randomX = Random.Range(-wanderRadius, wanderRadius);
-            wanderTarget = new Vector2(centerPoint.x + randomX, transform.position.y);
-            wanderTimer = Random.Range(wanderInterval, wanderInterval + 2f);
-        }
-
-        Vector2 targetPosition = new Vector2(wanderTarget.x, transform.position.y);
-        transform.position = Vector2.MoveTowards(transform.position, targetPosition, (speed * 0.5f) * Time.deltaTime);
-        FlipSprite(wanderTarget.x);
-
-        // เช็คว่ามีเพื่อน Passive อยู่ใกล้ๆ ไหม
         Collider2D[] others = Physics2D.OverlapCircleAll(transform.position, 1.5f);
         foreach (Collider2D col in others)
         {
@@ -335,7 +444,6 @@ public class EnemyBehavior : MonoBehaviour
                 EnemyBehavior friend = col.GetComponent<EnemyBehavior>();
                 if (friend != null && friend.type == EnemyType.Passive && !friend.isChatting && !friend.isAlerted)
                 {
-                    // ถ้าเดินมาเจอกัน มีโอกาสทักทายกัน
                     if (Random.value < 0.05f) 
                     {
                         StartChatting(friend);
@@ -350,32 +458,30 @@ public class EnemyBehavior : MonoBehaviour
     {
         isChatting = true;
         chatPartner = partner;
-        chatTimer = Random.Range(2f, 4f); // สุ่มเวลายืนคุยกัน 2-4 วินาที
-        
-        FlipSprite(partner.transform.position.x); // หันหน้าเข้าหากัน
-        if (!partner.isChatting) partner.StartChatting(this); // บังคับให้เพื่อนคุยด้วย
+        chatTimer = Random.Range(2f, 4f); 
+        FlipSprite(partner.transform.position.x); 
+        if (!partner.isChatting) partner.StartChatting(this); 
     }
 
     void HandleChatting()
     {
-        if (animator != null) animator.SetBool("isMoving", false); // หยุดเดินและยืนคุย
+        if (animator != null) animator.SetBool("isMoving", false); 
         chatTimer -= Time.deltaTime;
 
         if (chatTimer <= 0 || chatPartner == null || isAlerted)
         {
             isChatting = false;
             chatPartner = null;
-            wanderTimer = 0; // เลิกคุยแล้วเดินไปที่อื่นต่อ
+            wanderTimer = 0; 
         }
     }
 
-    // 🟢 เอฟเฟกต์โชว์เครื่องหมายตกใจ
     IEnumerator ShowAlertIcon()
     {
         if (alertIcon != null)
         {
             alertIcon.SetActive(true);
-            yield return new WaitForSeconds(1.0f); // โชว์ค้างไว้ 1 วินาที
+            yield return new WaitForSeconds(1.0f); 
             alertIcon.SetActive(false);
         }
     }
@@ -384,7 +490,6 @@ public class EnemyBehavior : MonoBehaviour
     {
         if (isRetreating || isPreparingMelee || isLunging) 
         {
-            // 🟢 ถ้ากำลังง้างดาบ, พุ่ง หรือกระเด็น ให้ปิดท่าเดิน
             if (animator != null) animator.SetBool("isMoving", false);
             return; 
         }
@@ -393,30 +498,28 @@ public class EnemyBehavior : MonoBehaviour
         {
             if (distance <= lungeRange && Time.time >= nextMeleeTime)
             {
-                if (animator != null) animator.SetBool("isMoving", false); // หยุดเดินเตรียมฟัน
+                if (animator != null) animator.SetBool("isMoving", false); 
                 StartCoroutine(MeleeLungeRoutine()); 
             }
             else if (distance > lungeRange - 0.2f)
             {
                 MoveTowardsPlayer();
-                if (animator != null) animator.SetBool("isMoving", true); // 🟢 เปิดท่าเดิน
+                if (animator != null) animator.SetBool("isMoving", true); 
             }
             else 
             {
-                if (animator != null) animator.SetBool("isMoving", false); // ยืนนิ่งๆ
+                if (animator != null) animator.SetBool("isMoving", false); 
             }
         }
         else 
         {
-            if (animator != null) animator.SetBool("isMoving", false); // อยู่นอกระยะ ยืนนิ่ง
+            if (animator != null) animator.SetBool("isMoving", false); 
         }
     }
     
     IEnumerator MeleeLungeRoutine()
     {
         isPreparingMelee = true;
-
-        // 🟢 ลบโค้ดเปลี่ยนสีตัวเหลืองออกแล้ว
 
         float lockedDirX = Mathf.Sign(player.position.x - transform.position.x);
         Vector2 windupTarget = new Vector2(transform.position.x - (lockedDirX * 0.5f), transform.position.y);
@@ -435,7 +538,6 @@ public class EnemyBehavior : MonoBehaviour
         
         if (animator != null) animator.SetTrigger("Attack");
 
-        // 🟢 อัปเกรด: คํานวณระยะพุ่ง โดย "เว้นระยะห่าง 1.0 หน่วย" หน้าผู้เล่น จะได้ไม่ทะลุไปข้างหลัง!
         float distToPlayer = Mathf.Abs(player.position.x - transform.position.x);
         float dashDistance = Mathf.Clamp(distToPlayer - 1.0f, 0.1f, lungeRange * 1.5f); 
         
@@ -459,28 +561,6 @@ public class EnemyBehavior : MonoBehaviour
         nextMeleeTime = Time.time + meleeCooldown; 
     }
 
-    void HandleRangedHostile(float distance)
-    {
-        if (distance <= detectionRange)
-        {
-            if (distance < safeDistance)
-            {
-                MoveAwayFromPlayer(); // เข้าใกล้ไป ถอยหลังตั้งหลัก
-            }
-            else if (distance > safeDistance + 1f)
-            {
-                MoveTowardsPlayer(); // ไกลไป ขยับเข้าหา
-            }
-
-            // ยิงปืน
-            if (Time.time >= nextFireTime)
-            {
-                Shoot();
-                nextFireTime = Time.time + fireRate;
-            }
-        }
-    }
-
     void HandleFlyingHostile(float distance)
     {
         if (distance > detectionRange) return;
@@ -497,17 +577,14 @@ public class EnemyBehavior : MonoBehaviour
             
             FlipSprite(player.position.x);
 
-            // 🟢 Game Feel: ระบบเอียงตัว (Tilt) ซ้ายขวาตามทิศทางที่บินอยู่
             float targetTilt = 0f;
-            if (Mathf.Abs(flyVelocity.x) > 0.5f) // ถ้าบินเร็วระดับนึง ค่อยเอียง
+            if (Mathf.Abs(flyVelocity.x) > 0.5f) 
             {
-                // บินไปขวา เอียงตัวไปข้างหลัง (ลบ) / บินไปซ้าย เอียงตัวไปข้างหลัง (บวก)
                 targetTilt = -Mathf.Sign(flyVelocity.x) * tiltAngle; 
             }
             
-            // หมุนแกน Z อย่างนุ่มนวล
             float currentZ = transform.rotation.eulerAngles.z;
-            if (currentZ > 180f) currentZ -= 360f; // แปลงมุมไม่ให้มั่ว
+            if (currentZ > 180f) currentZ -= 360f; 
             float newZ = Mathf.SmoothDamp(currentZ, targetTilt, ref currentTiltVelocity, tiltSmoothTime);
             transform.rotation = Quaternion.Euler(0, 0, newZ);
 
@@ -521,31 +598,24 @@ public class EnemyBehavior : MonoBehaviour
     IEnumerator DroneShootRoutine()
     {
         isPreparingToShoot = true;
-        flyVelocity = Vector2.zero; // เบรกกลางอากาศดังเอี๊ยด!
+        flyVelocity = Vector2.zero; 
 
         SpriteRenderer sr = GetComponent<SpriteRenderer>();
         Color origColor = sr != null ? sr.color : Color.white;
 
-        // 🟢 Game Feel 1: Telegraphing (เตือนก่อนยิง)
-        // เปลี่ยนเป็นสีแดงกระพริบ เพื่อให้ผู้เล่นรู้ตัวว่า "มันจะยิงแล้วนะ!"
         if (sr != null) sr.color = Color.red; 
-        
-        // หยุดชาร์จพลังกลางอากาศแปปนึง (ปรับเวลาได้ตามความยากที่อยากได้)
         yield return new WaitForSeconds(0.3f); 
 
-        // สั่งยิง (ฟังก์ชัน Shoot เดิมที่คุณมีอยู่แล้ว)
         Shoot();
         
-        // 🟢 Game Feel 2: Recoil (แรงถีบกระเด็นถอยหลัง)
-        if (sr != null) sr.color = origColor; // คืนสีเดิม
+        if (sr != null) sr.color = origColor; 
         Vector2 recoilDir = (transform.position - player.position).normalized;
         
         float recoilTime = 0.15f;
         float elapsed = 0f;
         Vector2 startPos = transform.position;
-        Vector2 recoilPos = startPos + (recoilDir * droneRecoilForce); // ตำแหน่งที่กระเด็นไป
+        Vector2 recoilPos = startPos + (recoilDir * droneRecoilForce); 
 
-        // อนิเมชันกระเด็นถอยหลังแบบรวดเร็ว
         while(elapsed < recoilTime)
         {
             transform.position = Vector2.Lerp(startPos, recoilPos, elapsed / recoilTime);
@@ -553,26 +623,19 @@ public class EnemyBehavior : MonoBehaviour
             yield return null;
         }
 
-        // รีเซ็ตคูลดาวน์และกลับไปโหมดบินตามปกติ
         nextFireTime = Time.time + fireRate;
         isPreparingToShoot = false;
     }
 
     void HandleBigChaser()
     {
-        if (isChasing)
-        {
-            MoveTowardsPlayer(); // ไล่ตามผู้เล่นตรงๆ ตลอดกาล
-        }
+        if (isChasing) MoveTowardsPlayer(); 
     }
-
-    // --- Helper Methods ---
 
     void MoveTowardsPlayer()
     {
         Vector2 targetPos = player.position;
         
-        // 🟢 ถ้าไม่ใช่ตัวบิน ให้บังคับล็อคความสูงแกน Y ไว้ที่พื้นเสมอ
         if (type != EnemyType.FlyingHostile) 
         {
             targetPos.y = transform.position.y;
@@ -586,17 +649,14 @@ public class EnemyBehavior : MonoBehaviour
     {
         if (type != EnemyType.FlyingHostile)
         {
-            // 🟢 ล็อคให้วิ่งหนีเฉพาะซ้าย-ขวา (แกน X) เท่านั้น ป้องกันบั๊กพยายามบินหนีหรือมุดดิน
             float dirX = Mathf.Sign(transform.position.x - player.position.x);
             Vector2 targetPos = new Vector2(transform.position.x + (dirX * 5f), transform.position.y);
             
-            // วิ่งหนีเร็วขึ้นนิดนึงตอนตกใจ
             transform.position = Vector2.MoveTowards(transform.position, targetPos, (speed * 1.2f) * Time.deltaTime);
             FlipSprite(targetPos.x);
         }
         else
         {
-            // ถ้าเป็นตัวบิน ให้บินหนีได้ทุกทิศทางเหมือนเดิม
             Vector2 direction = (transform.position - player.position).normalized;
             Vector2 targetPos = (Vector2)transform.position + (direction * 5f);
             
@@ -608,8 +668,6 @@ public class EnemyBehavior : MonoBehaviour
     void FlipSprite(float targetX)
     {
         Vector3 scale = transform.localScale;
-        
-        // ถ้าภาพวาดมากลับด้าน ให้เอา -1 ไปคูณ
         float facingMultiplier = invertFacing ? -1f : 1f; 
 
         if (targetX > transform.position.x) scale.x = Mathf.Abs(scale.x) * facingMultiplier; 
@@ -622,7 +680,6 @@ public class EnemyBehavior : MonoBehaviour
     {
         if (projectilePrefab != null)
         {
-            // 🟢 ถ้ามีจุด FirePoint ให้เสกกระสุนตรงนั้น ถ้าไม่มีให้เสกกลางตัวเหมือนเดิม
             Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position;
             
             GameObject bullet = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
@@ -642,13 +699,10 @@ public class EnemyBehavior : MonoBehaviour
 
     public void TakeDamage(int damageAmount)
     {
-        // BigChaser เป็นอมตะ
         if (type == EnemyType.BigChaser) return;
 
         currentHealth -= damageAmount;
-        Debug.Log(gameObject.name + " Hit! Current Health: " + currentHealth);
 
-        // ระบบ Melee ถอยหลังเมื่อโดนตี
         if (type == EnemyType.MeleeHostile)
         {
             StartCoroutine(RetreatRoutine());
@@ -663,14 +717,12 @@ public class EnemyBehavior : MonoBehaviour
     IEnumerator RetreatRoutine()
     {
         isRetreating = true;
-
         isPreparingMelee = false;
         isLunging = false;
         
         if (animator != null) animator.SetTrigger("Hurt");
         if (animator != null) animator.SetBool("isStunned", true);
 
-        // 👉 เราประกาศตัวแปรตรงนี้ไปแล้ว
         SpriteRenderer sr = GetComponent<SpriteRenderer>();
         Color origColor = sr != null ? sr.color : Color.white;
 
@@ -692,8 +744,6 @@ public class EnemyBehavior : MonoBehaviour
         yield return new WaitForSeconds(Mathf.Max(0, retreatTime - kbDuration));
         
         if (animator != null) animator.SetBool("isStunned", false); 
-        
-        // 🟢 ลบบรรทัดที่ประกาศตัวแปรซ้ำทิ้งไป แล้วเขียนแค่นี้พอ เพื่อคืนค่าสีเดิม
         if (sr != null) sr.color = origColor;
         
         isRetreating = false;
@@ -701,27 +751,19 @@ public class EnemyBehavior : MonoBehaviour
 
     void Die()
     {
-        Debug.Log(gameObject.name + " Dead!");
-        
-        // 🟢 อัปเกรดระบบเลือด: ยกตำแหน่งขึ้นแล้วค่อยกระจาย
         if (bloodPrefab != null)
         {
-            // ดึงตำแหน่งของศัตรู แล้วบวกความสูงขึ้นไปตามลำตัว/หัว
             Vector3 centerPosition = transform.position + new Vector3(0, bloodHeightOffset, 0);
-
             int bloodAmount = Random.Range(minBloodSpawns, maxBloodSpawns + 1);
             
             for (int i = 0; i < bloodAmount; i++)
             {
-                // สุ่มระยะกระจายตัว (กระจายออกจากจุดกึ่งกลางลำตัวที่เรายกขึ้นมาแล้ว)
                 Vector2 randomOffset = new Vector2(
                     Random.Range(-bloodSpread, bloodSpread), 
                     Random.Range(-bloodSpread, bloodSpread)
                 );
                 
-                // ตำแหน่งเกิดเลือด = ตำแหน่งลำตัว + ระยะสุ่มกระจาย
                 Vector3 spawnPosition = centerPosition + (Vector3)randomOffset;
-                
                 Instantiate(bloodPrefab, spawnPosition, Quaternion.identity);
             }
         }
@@ -730,32 +772,39 @@ public class EnemyBehavior : MonoBehaviour
     }
     
     [Header("Hitbox Settings")]
-    public GameObject enemyHitbox; // 🟢 กลับไป Unity แล้วลาก Object กล่องดาบศัตรูมาใส่ช่องนี้นะ
+    public GameObject enemyHitbox; 
 
-    // ฟังก์ชันนี้จะถูกเรียกตอนดาบเริ่มฟาด
     public void AnimEvent_EnableHitbox()
     {
         if (enemyHitbox != null) enemyHitbox.SetActive(true);
     }
 
-    // ฟังก์ชันนี้จะถูกเรียกตอนฟาดดาบเสร็จแล้ว
     public void AnimEvent_DisableHitbox()
     {
         if (enemyHitbox != null) enemyHitbox.SetActive(false);
     }
     
-    // 🟢 วาดเส้นบอกระยะใน Editor จะได้กะระยะ Level Design ได้เป๊ะๆ!
     private void OnDrawGizmosSelected()
     {
-        // วาดวงกลมสีเหลือง = ระยะมองเห็น (Detection Range)
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, detectionRange);
 
-        // วาดวงกลมสีแดง = ระยะง้างฟัน (Lunge Range)
         if (type == EnemyType.MeleeHostile)
         {
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(transform.position, lungeRange);
+        }
+        // 🟢 เพิ่มวาดวงกลมสีส้ม สำหรับระยะวิ่งหนีของสายปืน
+        else if (type == EnemyType.RangedHostile)
+        {
+            Gizmos.color = new Color(1f, 0.5f, 0f); // สีส้ม
+            Gizmos.DrawWireSphere(transform.position, safeDistance);
+        }
+        
+        if (firePoint != null)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(firePoint.position, 0.15f);
         }
     }
     
@@ -763,8 +812,6 @@ public class EnemyBehavior : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Player"))
         {
-            // 🟢 เพิ่ม && type != EnemyType.MeleeHostile เข้าไป
-            // แปลว่า: ไม่ทำดาเมจถ้าเป็นเป้านิ่ง, ตัวชาวบ้าน(Passive), หรือตัวถือดาบ(Melee)
             if (type == EnemyType.StationaryTarget || type == EnemyType.Passive || type == EnemyType.MeleeHostile) return;
 
             PlayerController p = collision.gameObject.GetComponent<PlayerController>();
@@ -774,4 +821,6 @@ public class EnemyBehavior : MonoBehaviour
             }
         }
     }
+    
+    
 }
