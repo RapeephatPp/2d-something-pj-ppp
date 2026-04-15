@@ -293,10 +293,10 @@ MonoBehaviour:
   maxGuardGauge: 50
   currentGuardGauge: 0
   blockDamageReduction: 0.5
-  guardRegenRate: 15
+  guardRegenRate: 20
   guardDepleteRateBlocking: 8
   guardDepleteOnHit: 25
-  stunDuration: 2
+  stunDuration: 1.25
   groundCheck: {fileID: 9171610510100206418}
   groundCheckRadius: 0.2
   groundLayer:
@@ -329,6 +329,7 @@ MonoBehaviour:
   minBloodSpawns: 10
   maxBloodSpawns: 20
   bloodSpread: 1.5
+  droppedSwordPrefab: {fileID: 0}
 --- !u!61 &5373598469833144271
 BoxCollider2D:
   m_ObjectHideFlags: 0
