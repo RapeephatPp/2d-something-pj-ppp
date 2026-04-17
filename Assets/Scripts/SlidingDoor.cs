@@ -2,49 +2,88 @@ using UnityEngine;
 
 public class SlidingDoor : MonoBehaviour
 {
+    public enum DoorMode { Automatic, SwitchControlled }
+
     [Header("Door Settings")]
-    [Tooltip("ระยะความสูงที่ประตูจะเลื่อนเปิดขึ้นไป")]
-    public float openHeight = 3.0f; 
+    [Tooltip("Automatic = เดินใกล้แล้วเปิด / SwitchControlled = ต้องให้สวิตช์สั่ง")]
+    public DoorMode doorMode = DoorMode.Automatic; 
     
-    [Tooltip("ความเร็วในการเลื่อนประตู")]
+    public float openHeight = 3.0f; 
     public float slideSpeed = 5.0f;
+
+    [Tooltip("เริ่มเกมมาให้เปิดทิ้งไว้ก่อนเลยไหม?")]
+    public bool startOpen = false; 
 
     private Vector3 closedPosition;
     private Vector3 openPosition;
     private bool isPlayerNear = false;
+    private bool isOpen = false;
 
     void Start()
     {
-        // จำตำแหน่งตอนปิด (ตำแหน่งเริ่มต้น) ไว้
         closedPosition = transform.position;
-        // คำนวณตำแหน่งตอนเปิด (เลื่อนขึ้นไปตามแนวแกน Y)
         openPosition = closedPosition + new Vector3(0, openHeight, 0);
+        
+        isOpen = startOpen;
+        if (isOpen)
+        {
+            transform.position = openPosition; // วาร์ปไปจุดเปิดเลยตอนเริ่มเกม
+        }
     }
 
     void Update()
     {
-        // 🟢 ถ้าผู้เล่นอยู่ใกล้ ให้เลื่อนไปตำแหน่งเปิด ถ้าไม่อยู่ ให้เลื่อนกลับตำแหน่งปิด
-        Vector3 targetPosition = isPlayerNear ? openPosition : closedPosition;
+        bool shouldBeOpen = isOpen;
 
-        // สั่งให้ประตูค่อยๆ สไลด์ไปหาเป้าหมายอย่างนุ่มนวล
+        if (doorMode == DoorMode.Automatic)
+        {
+            shouldBeOpen = isPlayerNear || isOpen; 
+        }
+
+        Vector3 targetPosition = shouldBeOpen ? openPosition : closedPosition;
         transform.position = Vector3.MoveTowards(transform.position, targetPosition, slideSpeed * Time.deltaTime);
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        // เช็คว่าคนที่เดินมาชนเซนเซอร์ คือผู้เล่นใช่ไหม
-        if (collision.CompareTag("Player") || collision.CompareTag("Enemy"))
+        if (doorMode == DoorMode.Automatic)
         {
-            isPlayerNear = true;
+            if (collision.CompareTag("Player") || collision.CompareTag("Enemy"))
+            {
+                isPlayerNear = true;
+            }
         }
     }
 
     private void OnTriggerExit2D(Collider2D collision)
     {
-        // พอผู้เล่นเดินออกนอกเซนเซอร์ ก็สั่งให้ประตูปิด
-        if (collision.CompareTag("Player") || collision.CompareTag("Enemy"))
+        if (doorMode == DoorMode.Automatic)
         {
-            isPlayerNear = false;
+            if (collision.CompareTag("Player") || collision.CompareTag("Enemy"))
+            {
+                isPlayerNear = false;
+            }
         }
+    }
+
+    // ==========================================
+    // 🟢 PUBLIC API (สำหรับให้ Lever.cs มาสั่งงาน)
+    // ==========================================
+    public void OpenDoor()
+    {
+        isOpen = true;
+        if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.15f, 0.1f);
+    }
+
+    public void CloseDoor()
+    {
+        isOpen = false;
+        if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.15f, 0.1f);
+    }
+
+    public void ToggleDoor()
+    {
+        isOpen = !isOpen;
+        if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.15f, 0.1f);
     }
 }

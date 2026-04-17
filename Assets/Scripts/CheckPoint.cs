@@ -4,7 +4,7 @@ public class Checkpoint : MonoBehaviour
 {
     [Header("Checkpoint Settings")]
     public KeyCode interactKey = KeyCode.E;
-    public Color activeColor = Color.yellow; // สีตอนที่กดเซฟแล้ว (ให้รู้ว่าทำงานแล้ว)
+    public Color activeColor = Color.yellow; 
     
     private bool isPlayerNear = false;
     private bool isActive = false;
@@ -17,8 +17,8 @@ public class Checkpoint : MonoBehaviour
 
     void Update()
     {
-        // ถ้าผู้เล่นอยู่ใกล้และกด E
-        if (isPlayerNear && Input.GetKeyDown(interactKey))
+        // 🟢 เพิ่มเช็คว่า ต้องยังไม่เคยถูกเปิด (!isActive) ถึงจะกด E ได้
+        if (isPlayerNear && !isActive && Input.GetKeyDown(interactKey))
         {
             ActivateCheckpoint();
         }
@@ -26,7 +26,9 @@ public class Checkpoint : MonoBehaviour
 
     void ActivateCheckpoint()
     {
-        // 1. บันทึกข้อมูลเข้าตัวแปร Static
+        if (isActive) return; // ป้องกันการทำงานซ้ำ
+
+        // 1. บันทึกข้อมูล
         CharacterSwitcher.currentCheckpointPosition = transform.position;
         CharacterSwitcher.hasCheckpoint = true;
         
@@ -43,23 +45,36 @@ public class Checkpoint : MonoBehaviour
         if (activePlayer != null) activePlayer.Heal(activePlayer.maxHealth);
 
         // 3. เปิดรูปปั้นทำงาน
-        if (!isActive)
-        {
-            isActive = true;
-            if (sr != null) sr.color = activeColor;
-            
-            if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.2f, 0.1f);
-            Debug.Log("Checkpoint Saved!");
-        }
+        isActive = true;
+        if (sr != null) sr.color = activeColor;
+        
+        if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.2f, 0.1f);
+        Debug.Log("Checkpoint Saved!");
+
+        // 🟢 ใช้งานเสร็จ สั่งทำลายป้าย E ทิ้ง!
+        DisablePrompt();
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
+        if (isActive) return; // 🟢 ถ้าจุดเซฟถูกเปิดไปแล้ว ไม่ต้องสนใจใครเดินมาใกล้อีก
         if (collision.CompareTag("Player")) isPlayerNear = true;
     }
 
     private void OnTriggerExit2D(Collider2D collision)
     {
         if (collision.CompareTag("Player")) isPlayerNear = false;
+    }
+
+    // 🟢 ฟังก์ชันสำหรับลบทิ้งป้ายแจ้งเตือน
+    private void DisablePrompt()
+    {
+        InteractPrompt prompt = GetComponent<InteractPrompt>();
+        if (prompt != null)
+        {
+            // ทำลายรูปป้าย E และทำลายสคริปต์ทิ้ง
+            if (prompt.promptVisual != null) Destroy(prompt.promptVisual);
+            Destroy(prompt);
+        }
     }
 }

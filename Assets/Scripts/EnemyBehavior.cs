@@ -146,15 +146,20 @@ public class EnemyBehavior : MonoBehaviour
             isChasing = true;
         }
 
-        if (type == EnemyType.MeleeHostile || type == EnemyType.Passive || type == EnemyType.RangedHostile)
+        // 🟢 อัปเกรดใหม่: สั่งให้กล่องชน "ทุกใบ" ของศัตรู เมินกล่องชน "ทุกใบ" ของผู้เล่น
+        if (type == EnemyType.MeleeHostile || type == EnemyType.Passive || type == EnemyType.RangedHostile || type == EnemyType.StationaryTarget)
         {
-            Collider2D myCollider = GetComponent<Collider2D>();
-            if (player != null && myCollider != null)
+            Collider2D[] myColliders = GetComponentsInChildren<Collider2D>(); // กวาดกล่องของตัวเอง
+            if (player != null)
             {
-                Collider2D[] playerColliders = player.GetComponents<Collider2D>();
-                foreach (Collider2D pCol in playerColliders)
+                Collider2D[] playerColliders = player.GetComponentsInChildren<Collider2D>(); // กวาดกล่องของผู้เล่น
+                
+                foreach (Collider2D myCol in myColliders)
                 {
-                    Physics2D.IgnoreCollision(myCollider, pCol, true);
+                    foreach (Collider2D pCol in playerColliders)
+                    {
+                        Physics2D.IgnoreCollision(myCol, pCol, true); // สั่งเมินกันและกัน 100%
+                    }
                 }
             }
         }
@@ -181,12 +186,19 @@ public class EnemyBehavior : MonoBehaviour
             case EnemyType.BigChaser: HandleBigChaser(); break;
         }
 
+        // อัปเกรดระบบล็อคขา ไม่ให้โดนศัตรูตัวอื่นเบียดกระเด็น
         bool shouldSeparate = true;
-        if (type == EnemyType.Passive) shouldSeparate = isAlerted || isFleeingToSafeZone; 
-        else if (type == EnemyType.StationaryTarget || type == EnemyType.RangedHostile) 
+        if (type == EnemyType.Passive) 
         {
-            // ถ้าเป็นสไนเปอร์ ไม่ต้องโดนพลักกระเด็น
+            shouldSeparate = isAlerted || isFleeingToSafeZone; 
+        }
+        else if (type == EnemyType.RangedHostile) 
+        {
             if (isStationaryShooter) shouldSeparate = false; 
+        }
+        else if (type == EnemyType.StationaryTarget) 
+        {
+            shouldSeparate = false; // ถ้าเป็นเป้านิ่ง ห้ามขยับเด็ดขาด!
         }
 
         if (shouldSeparate && !isLunging && !isRetreating && !isPreparingMelee && !isRangedAiming)
@@ -522,7 +534,21 @@ public class EnemyBehavior : MonoBehaviour
         isPreparingMelee = true;
 
         float lockedDirX = Mathf.Sign(player.position.x - transform.position.x);
-        Vector2 windupTarget = new Vector2(transform.position.x - (lockedDirX * 0.5f), transform.position.y);
+        if (lockedDirX == 0) lockedDirX = 1f;
+
+        // จุดยิงเรดาร์
+        Vector2 rayOrigin = new Vector2(transform.position.x, transform.position.y + 0.5f);
+        // 🟢 [ท่าไม้ตาย] สร้างกล่องเรดาร์ให้มีความกว้าง/สูง ใกล้เคียงตัวศัตรู (กว้าง 0.8 สูง 0.8)
+        Vector2 boxSize = new Vector2(0.8f, 0.8f); 
+
+        // 1. กันทะลุกำแพงตอนง้างตัวถอยหลัง (Windup) แบบยิงกล่อง BoxCast
+        float windupDist = 0.5f;
+        RaycastHit2D windupHit = Physics2D.BoxCast(rayOrigin, boxSize, 0f, Vector2.right * -lockedDirX, windupDist, obstacleLayer);
+        
+        // ถ้ากล่องชนกำแพง ให้หักระยะทางออก (ลบแค่ 0.1 พอ เพราะกล่องมันหนาอยู่แล้ว)
+        if (windupHit.collider != null) windupDist = Mathf.Max(0f, windupHit.distance - 0.1f); 
+        
+        Vector2 windupTarget = new Vector2(transform.position.x - (lockedDirX * windupDist), transform.position.y);
         
         float elapsed = 0f;
         Vector2 startPos = transform.position;
@@ -538,9 +564,13 @@ public class EnemyBehavior : MonoBehaviour
         
         if (animator != null) animator.SetTrigger("Attack");
 
+        // 2. กันทะลุกำแพงตอนพุ่งโจมตี (Lunge) แบบยิงกล่อง BoxCast
         float distToPlayer = Mathf.Abs(player.position.x - transform.position.x);
         float dashDistance = Mathf.Clamp(distToPlayer - 1.0f, 0.1f, lungeRange * 1.5f); 
         
+        RaycastHit2D dashHit = Physics2D.BoxCast(rayOrigin, boxSize, 0f, Vector2.right * lockedDirX, dashDistance, obstacleLayer);
+        if (dashHit.collider != null) dashDistance = Mathf.Max(0.1f, dashHit.distance - 0.1f); 
+
         Vector2 lungeTarget = new Vector2(transform.position.x + (lockedDirX * dashDistance), transform.position.y);
         
         elapsed = 0f;
@@ -727,8 +757,19 @@ public class EnemyBehavior : MonoBehaviour
         Color origColor = sr != null ? sr.color : Color.white;
 
         Vector2 knockbackDir = (transform.position - player.position).normalized;
-        knockbackDir.y = 0; 
-        Vector2 targetPos = (Vector2)transform.position + (knockbackDir * 2f); 
+        float kbDirX = Mathf.Sign(knockbackDir.x);
+        if (kbDirX == 0) kbDirX = 1f;
+
+        float kbDistance = 2f;
+        
+        // 🟢 เปลี่ยนมายิงกล่อง BoxCast กวาดไปด้านหลังแทนเลเซอร์เส้นเดียว
+        Vector2 rayOrigin = new Vector2(transform.position.x, transform.position.y + 0.5f);
+        Vector2 boxSize = new Vector2(0.8f, 0.8f);
+        
+        RaycastHit2D hit = Physics2D.BoxCast(rayOrigin, boxSize, 0f, Vector2.right * kbDirX, kbDistance, obstacleLayer);
+        if (hit.collider != null) kbDistance = Mathf.Max(0f, hit.distance - 0.1f);
+
+        Vector2 targetPos = new Vector2(transform.position.x + (kbDirX * kbDistance), transform.position.y);
 
         float elapsed = 0f;
         float kbDuration = 0.15f; 

@@ -4,10 +4,11 @@ public class Lever : MonoBehaviour
 {
     [Header("Switch Targets")]
     public GameObject lockedGate; 
+    public SlidingDoor targetSlidingDoor; // 🟢 ตัวเชื่อมกับ SlidingDoor
     public LaserTrap targetLaser;
     
     [Header("Visuals")]
-    public Sprite activatedSprite; // 🟢 (ตัวเลือก) ใส่รูปสวิตช์ตอนสับแล้ว
+    public Sprite activatedSprite; 
     public Color activatedColor = Color.gray; 
 
     private bool isPlayerNear = false;
@@ -21,53 +22,62 @@ public class Lever : MonoBehaviour
 
     void Update()
     {
-        // วิธีกดที่ 1: เดินมากด E แบบดั้งเดิม
+        // 🟢 ถ้าใช้งานไปแล้ว (isUsed) จะเข้าเงื่อนไขนี้ไม่ได้ ป้ายก็จะไม่ขึ้น
         if (isPlayerNear && !isUsed && Input.GetKeyDown(KeyCode.E))
         {
             ActivateLever();
         }
     }
 
-    // 🟢 สร้างฟังก์ชันกลางสำหรับสั่งเปิดสวิตช์
     public void ActivateLever()
     {
-        if (isUsed) return; // ป้องกันการกดซ้ำ
+        if (isUsed) return; 
         isUsed = true;
         
         Debug.Log("Lever Activated!");
 
-        // 1. ปิดประตู / เลเซอร์
         if (lockedGate != null) lockedGate.SetActive(false); 
         if (targetLaser != null) targetLaser.TurnOffLaser();
+        if (targetSlidingDoor != null) targetSlidingDoor.OpenDoor();
 
-        // 2. เปลี่ยนสีหรือเปลี่ยนรูปให้รู้ว่าทำงานแล้ว
         if (sr != null) 
         {
             if (activatedSprite != null) sr.sprite = activatedSprite;
             else sr.color = activatedColor;
         }
 
-        // 3. เอฟเฟกต์ Game Feel
         if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.15f, 0.1f);
+
+        // 🟢 ใช้งานเสร็จ สั่งทำลายป้าย E ทิ้งไปเลย!
+        DisablePrompt();
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
+        if (isUsed) return; // 🟢 ถ้าถูกสับสวิตช์ไปแล้ว ไม่ต้องสนใจผู้เล่นที่เดินมาใกล้ๆ อีก
+
         if (collision.CompareTag("Player")) isPlayerNear = true;
 
-        // 🟢 วิธีกดที่ 2: ถ้าสิ่งที่มาชนคือ "ดาบที่ปามา" หรือ "ดาบที่ฟันมา"
-        // (เช็คจาก Component ว่าเป็น ThrownSword หรือ MeleeHitbox ไหม)
-        if (!isUsed)
+        if (collision.GetComponent<ThrownSword>() != null || collision.GetComponent<MeleeHitbox>() != null)
         {
-            if (collision.GetComponent<ThrownSword>() != null || collision.GetComponent<MeleeHitbox>() != null)
-            {
-                ActivateLever();
-            }
+            ActivateLever();
         }
     }
 
     private void OnTriggerExit2D(Collider2D collision)
     {
         if (collision.CompareTag("Player")) isPlayerNear = false;
+    }
+
+    // 🟢 ฟังก์ชันสำหรับลบทิ้งป้ายแจ้งเตือน
+    private void DisablePrompt()
+    {
+        InteractPrompt prompt = GetComponent<InteractPrompt>();
+        if (prompt != null)
+        {
+            // ทำลายรูปป้าย E และทำลายสคริปต์ทิ้งไปเลย
+            if (prompt.promptVisual != null) Destroy(prompt.promptVisual);
+            Destroy(prompt);
+        }
     }
 }

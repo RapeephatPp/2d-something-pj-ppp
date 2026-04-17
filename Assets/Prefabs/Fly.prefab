@@ -115,6 +115,9 @@ MonoBehaviour:
   detectionRange: 8
   safeDistance: 3
   retreatTime: 2
+  isStationaryShooter: 0
+  standGroundChance: 0.3
+  aimTime: 0.5
   fleeToSafeZoneChance: 0.5
   wanderRadius: 3
   wanderInterval: 2
@@ -141,7 +144,7 @@ MonoBehaviour:
   tiltAngle: 15
   tiltSmoothTime: 0.15
   invertFacing: 1
-  player: {fileID: 0}
+  player: {fileID: 1545366221970184659, guid: 1a9230159de87c7448e1054a276b7b46, type: 3}
   animator: {fileID: 8129482610072442308}
   bloodPrefab: {fileID: 5439592118639056117, guid: 7170a7cadba21d14f9b966c5ceb8111b, type: 3}
   minBloodSpawns: 6
