@@ -37,4 +37,20 @@ public class CameraFollow : MonoBehaviour
         Vector3 smoothPos = Vector3.SmoothDamp(transform.position, desiredPos, ref velocity, 1f / smoothSpeed);
         transform.position = new Vector3(smoothPos.x, smoothPos.y, transform.position.z);
     }
+    // ==========================================
+    // 🟢 ฟังก์ชันใหม่สำหรับสั่งกล้องวาร์ปทันที
+    // ==========================================
+    public void SnapToTarget()
+    {
+        if (target == null) return;
+        
+        // คำนวณจุดกึ่งกลางที่กล้องควรอยู่
+        Vector3 desiredPos = target.position + offset;
+        
+        // บังคับวาร์ปกล้องไปตรงนั้นทันที
+        transform.position = new Vector3(desiredPos.x, desiredPos.y, transform.position.z);
+        
+        // ล้างค่าความเร็วสไลด์เดิมทิ้งให้เป็น 0 กล้องจะได้ไม่ไหลต่อ
+        velocity = Vector3.zero; 
+    }
 }

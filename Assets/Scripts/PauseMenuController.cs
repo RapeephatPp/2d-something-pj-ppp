@@ -68,8 +68,21 @@ public class PauseMenuController : MonoBehaviour
     public void LoadSave()
     {
         Debug.Log("Loading last save point...");
-        Resume();
-        // เรียกใช้ฟังก์ชัน Load จาก SaveSystem ของคุณที่นี่
+        
+        // 1. ปิดหน้าต่าง Pause และปลดล็อคเวลาให้เดินปกติก่อน
+        Resume(); 
+        
+        // 2. 🟢 สั่งโหลดฉากปัจจุบันใหม่ (เมื่อฉากโหลดเสร็จ ระบบ Checkpoint จะจับผู้เล่นไปวางจุดเซฟให้อัตโนมัติ)
+        if (ScreenFader.Instance != null)
+        {
+            int currentScene = SceneManager.GetActiveScene().buildIndex;
+            ScreenFader.Instance.FadeToScene(currentScene);
+        }
+        else
+        {
+            // Failsafe เผื่อลืมใส่ ScreenFader ไว้ในฉาก
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
     }
 
     public void ReturnToMainMenu()

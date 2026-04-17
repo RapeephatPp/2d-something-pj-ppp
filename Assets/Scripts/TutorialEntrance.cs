@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class TutorialEntrance : MonoBehaviour
 {
@@ -6,20 +7,33 @@ public class TutorialEntrance : MonoBehaviour
     public Transform tutorialSpawnPoint; 
     public KeyCode interactKey = KeyCode.E;
     private bool isPlayerNear = false;
+    private bool isTeleporting = false; // กันกดเบิ้ล
 
     void Update()
     {
-        if (isPlayerNear && Input.GetKeyDown(interactKey))
+        if (isPlayerNear && !isTeleporting && Input.GetKeyDown(interactKey))
         {
-            // 1. เซฟตำแหน่งปัจจุบันเอาไว้ก่อนวาร์ป
-            CharacterSwitcher.Instance.savedPreTutorialPosition = CharacterSwitcher.Instance.unarmedPlayer.transform.position;
-            
-            // 2. เสกดาบใส่มือให้ผู้เล่นเอาไว้ใช้ในห้อง Tutorial
-            CharacterSwitcher.Instance.SwitchToArmed();
-
-            // 3. วาร์ปไปที่จุดหมาย!
-            CharacterSwitcher.Instance.TeleportActivePlayer(tutorialSpawnPoint.position);
+            StartCoroutine(EnterTutorialRoutine());
         }
+    }
+
+    private IEnumerator EnterTutorialRoutine()
+    {
+        isTeleporting = true;
+
+        // 1. จอมืดลง
+        if (ScreenFader.Instance != null) yield return StartCoroutine(ScreenFader.Instance.FadeRoutine(1f));
+
+        // 2. เซฟจุดเกิด แจกดาบ และวาร์ปตัว
+        CharacterSwitcher.Instance.savedPreTutorialPosition = CharacterSwitcher.Instance.unarmedPlayer.transform.position;
+        CharacterSwitcher.Instance.SwitchToArmed();
+        CharacterSwitcher.Instance.TeleportActivePlayer(tutorialSpawnPoint.position);
+
+        yield return new WaitForSeconds(0.1f);
+
+        // 3. จอสว่างขึ้น
+        if (ScreenFader.Instance != null) yield return StartCoroutine(ScreenFader.Instance.FadeRoutine(0f));
+        isTeleporting = false;
     }
 
     private void OnTriggerEnter2D(Collider2D collision)

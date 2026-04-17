@@ -157,6 +157,8 @@ public class PlayerController : MonoBehaviour
         currentGuardGauge = maxGuardGauge;
         if (spriteRenderer != null) originalColor = spriteRenderer.color;
         if (UIManager.Instance != null) UIManager.Instance.UpdateHealth(currentHealth, maxHealth);
+        
+        AnimEvent_DisableHitbox();
     }
 
     private void Update()

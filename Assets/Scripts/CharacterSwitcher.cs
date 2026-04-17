@@ -120,7 +120,14 @@ public class CharacterSwitcher : MonoBehaviour
 
     public void TeleportActivePlayer(Vector3 newPosition)
     {
+        // 1. วาร์ปตัวละคร
         if (isArmed) armedPlayer.transform.position = newPosition;
         else unarmedPlayer.transform.position = newPosition;
+
+        // 🟢 2. สั่งกล้องให้วาร์ปตามไปทับหน้าผู้เล่นทันที!
+        if (cameraFollow != null)
+        {
+            cameraFollow.SnapToTarget();
+        }
     }
 }

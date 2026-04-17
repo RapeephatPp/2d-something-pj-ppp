@@ -1,20 +1,36 @@
 using UnityEngine;
+using System.Collections;
 
 public class TutorialExit : MonoBehaviour
 {
     public KeyCode interactKey = KeyCode.E; 
     private bool isPlayerNear = false;
+    private bool isTeleporting = false; // กันกดเบิ้ล
 
     void Update()
     {
-        if (isPlayerNear && Input.GetKeyDown(interactKey))
+        if (isPlayerNear && !isTeleporting && Input.GetKeyDown(interactKey))
         {
-            // 1. ริบดาบคืน เปลี่ยนเป็นร่างมือเปล่า
-            CharacterSwitcher.Instance.SwitchToUnarmed();
-
-            // 2. วาร์ปกลับไปจุดที่เซฟไว้ก่อนเข้าห้อง
-            CharacterSwitcher.Instance.TeleportActivePlayer(CharacterSwitcher.Instance.savedPreTutorialPosition);
+            StartCoroutine(ExitTutorialRoutine());
         }
+    }
+
+    private IEnumerator ExitTutorialRoutine()
+    {
+        isTeleporting = true;
+
+        // 1. จอมืดลง
+        if (ScreenFader.Instance != null) yield return StartCoroutine(ScreenFader.Instance.FadeRoutine(1f));
+
+        // 2. ริบดาบ และวาร์ปกลับจุดเดิม
+        CharacterSwitcher.Instance.SwitchToUnarmed();
+        CharacterSwitcher.Instance.TeleportActivePlayer(CharacterSwitcher.Instance.savedPreTutorialPosition);
+
+        yield return new WaitForSeconds(0.1f);
+
+        // 3. จอสว่างขึ้น
+        if (ScreenFader.Instance != null) yield return StartCoroutine(ScreenFader.Instance.FadeRoutine(0f));
+        isTeleporting = false;
     }
 
     private void OnTriggerEnter2D(Collider2D collision)

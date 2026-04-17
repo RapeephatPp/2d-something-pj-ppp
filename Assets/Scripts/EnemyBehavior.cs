@@ -323,12 +323,9 @@ public class EnemyBehavior : MonoBehaviour
         Vector2 centerPoint = safeZone != null ? (Vector2)safeZone.position : startPosition;
         wanderTimer -= Time.deltaTime;
 
-        // ถ้าระยะห่างน้อยกว่า 0.1 แปลว่าเดินถึงเป้าหมายแล้ว ให้ "หยุดพัก"
         if (Mathf.Abs(transform.position.x - wanderTarget.x) < 0.1f)
         {
-            if (animator != null) animator.SetBool("isMoving", false); // หยุดสับขา กลับไปท่ายืนนิ่ง
-            
-            // ถ้าหมดเวลาพัก ค่อยสุ่มหาจุดหมายใหม่
+            if (animator != null) animator.SetBool("isMoving", false); 
             if (wanderTimer <= 0)
             {
                 float randomX = Random.Range(-wanderRadius, wanderRadius);
@@ -338,11 +335,9 @@ public class EnemyBehavior : MonoBehaviour
         }
         else
         {
-            // ถ้ายังไม่ถึงเป้าหมาย ให้ "เดินต่อไป"
-            if (animator != null) animator.SetBool("isMoving", true); // เล่นท่าเดิน
-            
-            Vector2 targetPosition = new Vector2(wanderTarget.x, transform.position.y);
-            transform.position = Vector2.MoveTowards(transform.position, targetPosition, (speed * 0.5f) * Time.deltaTime);
+            if (animator != null) animator.SetBool("isMoving", true); 
+            float dirX = Mathf.Sign(wanderTarget.x - transform.position.x);
+            SafeMoveX(dirX, speed * 0.5f); // 🟢 ใช้เดินแบบปลอดภัย
             FlipSprite(wanderTarget.x);
         }
     }
@@ -439,9 +434,8 @@ public class EnemyBehavior : MonoBehaviour
         
         if (hit.collider != null) currentFleeDirection = -currentFleeDirection; 
 
-        Vector2 targetPos = new Vector2(transform.position.x + (currentFleeDirection * 5f), transform.position.y);
-        transform.position = Vector2.MoveTowards(transform.position, targetPos, (speed * 1.5f) * Time.deltaTime);
-        FlipSprite(targetPos.x);
+        SafeMoveX(currentFleeDirection, speed * 1.5f); // 🟢 ใช้เดินแบบปลอดภัย
+        FlipSprite(transform.position.x + currentFleeDirection);
     }
 
     void WanderAndLookForFriends()
@@ -662,37 +656,57 @@ public class EnemyBehavior : MonoBehaviour
         if (isChasing) MoveTowardsPlayer(); 
     }
 
+    void SafeMoveX(float dirX, float currentSpeed)
+    {
+        if (dirX == 0) return;
+
+        Vector2 rayOrigin = new Vector2(transform.position.x, transform.position.y + 0.5f);
+        Vector2 boxSize = new Vector2(0.8f, 0.8f);
+        
+        // ยิงเรดาร์กล่องเช็คไปด้านหน้าก่อนก้าวเดิน
+        RaycastHit2D hit = Physics2D.BoxCast(rayOrigin, boxSize, 0f, Vector2.right * dirX, 0.1f, obstacleLayer);
+
+        // ถ้าทางสะดวก ไม่มีกำแพงขวาง ถึงจะเดินได้!
+        if (hit.collider == null)
+        {
+            Vector2 targetPos = new Vector2(transform.position.x + (dirX * currentSpeed * Time.deltaTime), transform.position.y);
+            transform.position = targetPos;
+        }
+    }
+
     void MoveTowardsPlayer()
     {
-        Vector2 targetPos = player.position;
-        
-        if (type != EnemyType.FlyingHostile) 
+        if (type == EnemyType.FlyingHostile)
         {
-            targetPos.y = transform.position.y;
+            Vector2 direction = (player.position - transform.position).normalized;
+            transform.position += (Vector3)(direction * speed * Time.deltaTime);
+            FlipSprite(player.position.x);
+            return;
         }
 
-        transform.position = Vector2.MoveTowards(transform.position, targetPos, speed * Time.deltaTime);
-        FlipSprite(targetPos.x);
+        float dirX = Mathf.Sign(player.position.x - transform.position.x);
+        if (Mathf.Abs(player.position.x - transform.position.x) > 0.1f)
+        {
+            SafeMoveX(dirX, speed); // 🟢 ใช้เดินแบบปลอดภัย
+            FlipSprite(player.position.x);
+        }
     }
 
     void MoveAwayFromPlayer()
     {
-        if (type != EnemyType.FlyingHostile)
-        {
-            float dirX = Mathf.Sign(transform.position.x - player.position.x);
-            Vector2 targetPos = new Vector2(transform.position.x + (dirX * 5f), transform.position.y);
-            
-            transform.position = Vector2.MoveTowards(transform.position, targetPos, (speed * 1.2f) * Time.deltaTime);
-            FlipSprite(targetPos.x);
-        }
-        else
+        if (type == EnemyType.FlyingHostile)
         {
             Vector2 direction = (transform.position - player.position).normalized;
-            Vector2 targetPos = (Vector2)transform.position + (direction * 5f);
-            
-            transform.position = Vector2.MoveTowards(transform.position, targetPos, speed * Time.deltaTime);
-            FlipSprite(targetPos.x);
+            transform.position += (Vector3)(direction * speed * Time.deltaTime);
+            FlipSprite(transform.position.x + direction.x);
+            return;
         }
+
+        float dirX = Mathf.Sign(transform.position.x - player.position.x);
+        if (dirX == 0) dirX = 1f;
+
+        SafeMoveX(dirX, speed * 1.2f); // 🟢 ใช้เดินแบบปลอดภัย
+        FlipSprite(transform.position.x + dirX);
     }
 
     void FlipSprite(float targetX)

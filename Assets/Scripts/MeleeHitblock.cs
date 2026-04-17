@@ -21,8 +21,6 @@ public class MeleeHitbox : MonoBehaviour
     {
         player = GetComponentInParent<PlayerController>();
         
-        // ซ่อนกล่องแดงไว้ก่อนตอนเริ่มเกม โค้ด Player/Animation จะเป็นคนสั่งเปิดเอง
-        gameObject.SetActive(false);
     }
 
     void OnEnable()
