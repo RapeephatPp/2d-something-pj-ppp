@@ -1,30 +1,39 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 [RequireComponent(typeof(LineRenderer))]
 public class LaserTrap : MonoBehaviour
 {
-    // 🟢 ตัวเลือกทิศทางแบบ Dropdown ให้เลือกง่ายๆ ใน Inspector
+    public enum LaserType 
+    { 
+        Normal,             // ปกติ (ดาบปักได้, คนพุ่งหลบได้) -> 🔴 สีแดง
+        SwordPassable,      // กรองแสง (ดาบทะลุได้, คนพุ่งหลบได้) -> 🟠 สีส้ม
+        AbsoluteBarrier     // สังหาร (ดาบทะลุได้, คนห้ามผ่านเด็ดขาด) -> 🟣 สีม่วง
+    }
+
     public enum LaserDirection { Right, Left, Up, Down, CustomWorld, CustomLocal }
 
     [Header("Laser Core Settings")]
+    public LaserType laserType = LaserType.Normal; 
     public LaserDirection shootDirection = LaserDirection.Right;
     [Tooltip("ใช้เฉพาะตอนเลือกโหมด Custom")]
     public Vector2 customDirection = Vector2.right; 
     public float maxDistance = 20f;
     public LayerMask hitLayers;
-    public bool startActive = true; // 🟢 เลือกว่าเริ่มมาเปิด หรือ ปิด
+    public bool startActive = true; 
 
     [Header("Damage & Knockback")]
     public int damage = 1;
     public float damageTickRate = 0.5f;
-    public float knockbackForce = 10f; // 🟢 โดนแล้วกระเด็นด้วย!
+    public float knockbackForce = 15f; 
 
     [Header("Visual Fixes")]
     public string sortingLayerName = "Default"; 
     public int sortingOrder = 20;               
 
     [Header("Game Feel (Juice)")]
-    public Color laserColor = Color.red;
+    // 🟢 ซ่อนการตั้งค่าสีไว้ เพราะเดี๋ยวโค้ดจะจัดการให้เอง!
+    [HideInInspector] public Color laserColor = Color.red;
     public float baseWidth = 0.15f;
     public float pulseAmplitude = 0.05f;
     public float pulseSpeed = 15f;
@@ -41,29 +50,67 @@ public class LaserTrap : MonoBehaviour
     private float blinkTimer = 0f;
     private GameObject currentSpark;
 
+    // 🟢 ระบบเปลี่ยนสีให้ดูทันทีในหน้าจอ Unity (ไม่ต้องกด Play)
+    private void OnValidate()
+    {
+        UpdateLaserColor();
+    }
+
+    private void UpdateLaserColor()
+    {
+        switch (laserType)
+        {
+            case LaserType.Normal: laserColor = Color.red; break;
+            case LaserType.SwordPassable: laserColor = new Color(1f, 0.5f, 0f); break; 
+            case LaserType.AbsoluteBarrier: laserColor = new Color(0.7f, 0f, 1f); break; 
+        }
+        
+        if (lr == null) lr = GetComponent<LineRenderer>();
+        if (lr != null)
+        {
+            lr.startColor = laserColor;
+            lr.endColor = laserColor;
+        }
+
+        // 🟢 เปลี่ยนสีและ "ขนาด" ของ Spark ให้ตรงกับเลเซอร์
+        if (currentSpark != null)
+        {
+            SpriteRenderer sparkSr = currentSpark.GetComponent<SpriteRenderer>();
+            if (sparkSr != null) sparkSr.color = laserColor;
+
+            // ส่งค่าไปบอก HitSparkJuice
+            HitSparkJuice sparkJuice = currentSpark.GetComponent<HitSparkJuice>();
+            if (sparkJuice != null)
+            {
+                // นำ baseWidth มาหารด้วย 0.15 (ซึ่งเป็นค่าความกว้างมาตรฐาน)
+                // ถ้าเลเซอร์หนา 0.30 Spark ก็จะใหญ่ขึ้นเป็น 2 เท่าทันที!
+                sparkJuice.externalScaleMultiplier = baseWidth / 0.15f; 
+            }
+        }
+    }
+
     void Start()
     {
         lr = GetComponent<LineRenderer>();
-        lr.positionCount = 2;
-        lr.startColor = laserColor;
-        lr.endColor = laserColor;
-        lr.useWorldSpace = true;
-        
-        lr.sortingLayerName = sortingLayerName;
-        lr.sortingOrder = sortingOrder;
 
-        if (lr.material == null || lr.material.name == "Default-Material")
-        {
-            lr.material = new Material(Shader.Find("Sprites/Default"));
-        }
-
+        // 🟢 1. สร้าง Spark ขึ้นมาก่อน (ต้องทำก่อน UpdateLaserColor)
         if (hitSparkPrefab != null)
         {
             currentSpark = Instantiate(hitSparkPrefab, transform.position, Quaternion.identity);
             currentSpark.SetActive(false);
         }
 
-        // 🟢 เซ็ตสถานะตอนเริ่มเกม
+        // 🟢 2. เรียกใช้การตั้งค่าสี (มันจะไปเปลี่ยนสี Spark ที่เพิ่งเสกมาให้ด้วย)
+        UpdateLaserColor(); 
+        
+        lr.positionCount = 2;
+        lr.useWorldSpace = true;
+        lr.sortingLayerName = sortingLayerName;
+        lr.sortingOrder = sortingOrder;
+
+        if (lr.material == null || lr.material.name == "Default-Material")
+            lr.material = new Material(Shader.Find("Sprites/Default"));
+
         isLaserActive = startActive;
         blinkTimer = timeOn;
     }
@@ -85,7 +132,6 @@ public class LaserTrap : MonoBehaviour
         }
     }
 
-    // 🟢 ฟังก์ชันแปลงคำสั่ง Dropdown ให้กลายเป็นทิศทางจริงๆ
     private Vector2 GetDirection()
     {
         switch (shootDirection)
@@ -94,13 +140,8 @@ public class LaserTrap : MonoBehaviour
             case LaserDirection.Left:  return Vector2.left;
             case LaserDirection.Up:    return Vector2.up;
             case LaserDirection.Down:  return Vector2.down;
-            
-            // CustomWorld = อิงตามแกนโลก (ใส่ 1, 1 คือยิงทะแยงขวาบนเสมอ)
             case LaserDirection.CustomWorld: return customDirection.normalized; 
-            
-            // CustomLocal = อิงตามการหมุนของ Object
             case LaserDirection.CustomLocal: return transform.TransformDirection(customDirection.normalized); 
-            
             default: return Vector2.right;
         }
     }
@@ -108,7 +149,6 @@ public class LaserTrap : MonoBehaviour
     private void HandleBlinking()
     {
         if (!isBlinking) return;
-
         blinkTimer -= Time.deltaTime;
         if (blinkTimer <= 0)
         {
@@ -122,38 +162,67 @@ public class LaserTrap : MonoBehaviour
         Vector2 startPos = transform.position;
         lr.SetPosition(0, startPos);
 
-        // 🟢 เรียกใช้ทิศทางที่ตั้งค่าไว้
         Vector2 direction = GetDirection(); 
-        RaycastHit2D hit = Physics2D.Raycast(startPos, direction, maxDistance, hitLayers);
+        
+        RaycastHit2D[] hits = Physics2D.RaycastAll(startPos, direction, maxDistance, hitLayers);
+        RaycastHit2D actualHit = new RaycastHit2D();
 
-        if (hit.collider != null)
+        foreach (RaycastHit2D h in hits)
         {
-            lr.SetPosition(1, hit.point);
+            if ((laserType == LaserType.SwordPassable || laserType == LaserType.AbsoluteBarrier) 
+                && h.collider.GetComponent<ThrownSword>() != null)
+            {
+                continue; 
+            }
+
+            actualHit = h;
+            break; 
+        }
+
+        if (actualHit.collider != null)
+        {
+            lr.SetPosition(1, actualHit.point);
 
             if (currentSpark != null)
             {
-                currentSpark.transform.position = hit.point;
+                currentSpark.transform.position = actualHit.point;
                 currentSpark.SetActive(true);
             }
 
-            if (hit.collider.CompareTag("Player") && Time.time >= nextDamageTime)
+            if (actualHit.collider.CompareTag("Player") && Time.time >= nextDamageTime)
             {
-                PlayerController pc = hit.collider.GetComponent<PlayerController>();
-                if (pc != null && !pc.isInvincible)
+                PlayerController pc = actualHit.collider.GetComponent<PlayerController>();
+                if (pc != null)
                 {
-                    pc.TakeDamage(damage);
-                    nextDamageTime = Time.time + damageTickRate;
+                    bool bypass = (laserType == LaserType.AbsoluteBarrier);
                     
-                    // 🟢 ระบบผลักกระเด็น (Knockback) ให้เด้งไปตามทิศทางของเลเซอร์
-                    Rigidbody2D pRb = pc.GetComponent<Rigidbody2D>();
-                    if (pRb != null)
+                    if ((!pc.isInvincible || bypass) && !pc.isDead) 
                     {
-                        pRb.linearVelocity = Vector2.zero; // หยุดชะงัก
-                        pRb.AddForce(direction * knockbackForce, ForceMode2D.Impulse); // ดีดปลิว!
-                    }
+                        // 🟢 1. คำนวณทิศทางผลักออก "ซ้าย หรือ ขวา" จากจุดที่โดนเลเซอร์
+                        float pushDirX = Mathf.Sign(pc.transform.position.x - actualHit.point.x);
+                        
+                        // ถ้าเดินชนตรงกลางเป๊ะๆ (0) ให้เด้งสวนทางกับหน้าที่หันอยู่
+                        if (Mathf.Abs(pc.transform.position.x - actualHit.point.x) < 0.05f) 
+                        {
+                            pushDirX = -Mathf.Sign(pc.transform.localScale.x); 
+                        }
+                        
+                        // สร้างแรงกระเด็นเฉียงขึ้นฟ้าเล็กน้อย (X, Y)
+                        Vector2 knockbackDir = new Vector2(pushDirX, 0.7f).normalized; 
 
-                    if (CameraShake.Instance != null) 
-                        CameraShake.Instance.StartManagedShake(0.15f, 0.1f);
+                        // 🟢 2. ทำดาเมจ
+                        pc.TakeDamage(damage, bypass);
+                        nextDamageTime = Time.time + damageTickRate;
+                        
+                        // 🟢 3. เรียกใช้ระบบกระเด็นใหม่! (กระเด็นเป็นเวลา 0.25 วินาที)
+                        if (!pc.isDead) 
+                        {
+                            pc.ApplyKnockback(knockbackDir * knockbackForce, 0.25f); 
+                        }
+
+                        if (CameraShake.Instance != null) 
+                            CameraShake.Instance.StartManagedShake(0.15f, 0.1f);
+                    }
                 }
             }
         }
@@ -171,9 +240,6 @@ public class LaserTrap : MonoBehaviour
         lr.endWidth = currentWidth * 0.8f;
     }
 
-    // ==========================================
-    // 🟢 PUBLIC API (สำหรับให้ปุ่ม/สวิตช์ มาสั่งงาน)
-    // ==========================================
     public void TurnOnLaser() { isLaserActive = true; }
     public void TurnOffLaser() { isLaserActive = false; }
     public void ToggleLaser() { isLaserActive = !isLaserActive; }

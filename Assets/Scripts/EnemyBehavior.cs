@@ -398,9 +398,11 @@ public class EnemyBehavior : MonoBehaviour
 
             if (safeZone != null && (isFleeingToSafeZone || (!hasRolledFleeChance && RollFleeToSafeZone())))
             {
-                Vector2 targetPos = new Vector2(safeZone.position.x, transform.position.y);
-                transform.position = Vector2.MoveTowards(transform.position, targetPos, speed * 1.5f * Time.deltaTime);
+                // 🟢 แก้มาใช้ SafeMoveX เพื่อวิ่งเข้า Safe Zone จะได้ไม่มุดกำแพง
+                float dirX = Mathf.Sign(safeZone.position.x - transform.position.x);
+                SafeMoveX(dirX, speed * 1.5f);
                 FlipSprite(safeZone.position.x);
+                
                 if (Mathf.Abs(transform.position.x - safeZone.position.x) < 0.2f) Destroy(gameObject); 
                 return;
             }
@@ -656,14 +658,18 @@ public class EnemyBehavior : MonoBehaviour
         if (isChasing) MoveTowardsPlayer(); 
     }
 
+    // ==========================================
+    // 🟢 ระบบเดินแบบปลอดภัย 100% (แก้ไขไม่ให้เรดาร์ขูดพื้น)
+    // ==========================================
     void SafeMoveX(float dirX, float currentSpeed)
     {
         if (dirX == 0) return;
 
-        Vector2 rayOrigin = new Vector2(transform.position.x, transform.position.y + 0.5f);
-        Vector2 boxSize = new Vector2(0.8f, 0.8f);
+        // 🟢 ยกจุดเช็คสูงขึ้นมาที่ระดับอก (Y+0.6) และทำกล่องให้ "แบนลง" (กว้าง 0.5 สูง 0.2)
+        // เพื่อป้องกันไม่ให้มันไปชนกับพื้นหรือเนินลาดชัน
+        Vector2 rayOrigin = new Vector2(transform.position.x, transform.position.y + 0.6f);
+        Vector2 boxSize = new Vector2(0.5f, 0.2f);
         
-        // ยิงเรดาร์กล่องเช็คไปด้านหน้าก่อนก้าวเดิน
         RaycastHit2D hit = Physics2D.BoxCast(rayOrigin, boxSize, 0f, Vector2.right * dirX, 0.1f, obstacleLayer);
 
         // ถ้าทางสะดวก ไม่มีกำแพงขวาง ถึงจะเดินได้!

@@ -1,11 +1,12 @@
 using UnityEngine;
+using System.Collections.Generic; // 🟢 ขาดไม่ได้เลยสำหรับการใช้งาน List
 
 public class Lever : MonoBehaviour
 {
-    [Header("Switch Targets")]
-    public GameObject lockedGate; 
-    public SlidingDoor targetSlidingDoor; // 🟢 ตัวเชื่อมกับ SlidingDoor
-    public LaserTrap targetLaser;
+    [Header("Switch Targets (ใส่ได้หลายอัน)")]
+    public List<GameObject> lockedGates;        // 🟢 เปลี่ยนเป็น List สำหรับประตูล่องหน
+    public List<SlidingDoor> targetSlidingDoors; // 🟢 เปลี่ยนเป็น List สำหรับประตูเลื่อน
+    public List<LaserTrap> targetLasers;         // 🟢 เปลี่ยนเป็น List สำหรับเลเซอร์
     
     [Header("Visuals")]
     public Sprite activatedSprite; 
@@ -22,7 +23,6 @@ public class Lever : MonoBehaviour
 
     void Update()
     {
-        // 🟢 ถ้าใช้งานไปแล้ว (isUsed) จะเข้าเงื่อนไขนี้ไม่ได้ ป้ายก็จะไม่ขึ้น
         if (isPlayerNear && !isUsed && Input.GetKeyDown(KeyCode.E))
         {
             ActivateLever();
@@ -36,10 +36,25 @@ public class Lever : MonoBehaviour
         
         Debug.Log("Lever Activated!");
 
-        if (lockedGate != null) lockedGate.SetActive(false); 
-        if (targetLaser != null) targetLaser.TurnOffLaser();
-        if (targetSlidingDoor != null) targetSlidingDoor.OpenDoor();
+        // 🟢 สั่งปิดประตู Gate แบบล่องหน ทุกอันที่มีใน List
+        foreach (GameObject gate in lockedGates)
+        {
+            if (gate != null) gate.SetActive(false); 
+        }
 
+        // 🟢 สั่งดับเลเซอร์ ทุกอันที่มีใน List
+        foreach (LaserTrap laser in targetLasers)
+        {
+            if (laser != null) laser.TurnOffLaser();
+        }
+
+        // 🟢 สั่งเปิดประตูสไลด์ ทุกอันที่มีใน List
+        foreach (SlidingDoor door in targetSlidingDoors)
+        {
+            if (door != null) door.OpenDoor();
+        }
+
+        // เปลี่ยนสีหรือเปลี่ยนรูปสวิตช์
         if (sr != null) 
         {
             if (activatedSprite != null) sr.sprite = activatedSprite;
@@ -48,13 +63,12 @@ public class Lever : MonoBehaviour
 
         if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.15f, 0.1f);
 
-        // 🟢 ใช้งานเสร็จ สั่งทำลายป้าย E ทิ้งไปเลย!
         DisablePrompt();
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (isUsed) return; // 🟢 ถ้าถูกสับสวิตช์ไปแล้ว ไม่ต้องสนใจผู้เล่นที่เดินมาใกล้ๆ อีก
+        if (isUsed) return; 
 
         if (collision.CompareTag("Player")) isPlayerNear = true;
 
@@ -69,13 +83,11 @@ public class Lever : MonoBehaviour
         if (collision.CompareTag("Player")) isPlayerNear = false;
     }
 
-    // 🟢 ฟังก์ชันสำหรับลบทิ้งป้ายแจ้งเตือน
     private void DisablePrompt()
     {
         InteractPrompt prompt = GetComponent<InteractPrompt>();
         if (prompt != null)
         {
-            // ทำลายรูปป้าย E และทำลายสคริปต์ทิ้งไปเลย
             if (prompt.promptVisual != null) Destroy(prompt.promptVisual);
             Destroy(prompt);
         }

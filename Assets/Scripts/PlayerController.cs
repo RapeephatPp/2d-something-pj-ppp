@@ -46,6 +46,9 @@ public class PlayerController : MonoBehaviour
     
     // 🟢 ตัวแปรพระเอก: โล่อมตะ
     public bool isInvincible = false;
+    public bool isDead = false;
+    public bool isKnockedBack = false; // 🟢 ล็อคไม่ให้ขยับตอนกระเด็น
+    private float knockbackTimer = 0f;
 
     public float dashRange = 7f; 
     public float dashSpeed = 15f;
@@ -144,7 +147,9 @@ public class PlayerController : MonoBehaviour
 
     private void Start()
     {   
+        isDead = false;
         hasThrownSword = false;
+        
         if (gameObject.name.Contains("Maris") && !gameObject.name.Contains("Sword")) 
         {
             isArmed = false;
@@ -163,7 +168,23 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {   
+        if (isDead) return;
         if (isDashing) return;
+        
+        if (isKnockedBack)
+        {
+            knockbackTimer -= Time.deltaTime;
+            if (knockbackTimer <= 0) isKnockedBack = false;
+        }
+        
+        // 🟢 ถ้าโดนผลักอยู่ ให้เมินคำสั่งเดินทั้งหมด
+        if (isTargetDashing || isStunned || isKnockedBack) 
+        {
+            CheckGrounded(); 
+            if (isStunned) HandleStunTimer(); 
+            return; 
+        }
+        
         if (Input.GetKeyDown(jumpKey)) 
         {
             jumpBufferCounter = jumpBufferTime; // เริ่มนับถอยหลัง
@@ -211,10 +232,11 @@ public class PlayerController : MonoBehaviour
     }
 
     private void FixedUpdate()
-    {
-        if (isTargetDashing || isStunned) 
+    {   
+        if (isDead) return;
+        
+        if (isTargetDashing || isStunned || isKnockedBack) 
         {
-            // 🟢 ปลดล็อคเสมอเวลาโดนตีหรือพุ่ง เพื่อให้กระเด็นได้ตามปกติ
             rb.constraints = RigidbodyConstraints2D.FreezeRotation;
             return;
         }
@@ -407,7 +429,9 @@ public class PlayerController : MonoBehaviour
         float dashTime = 0f;
 
         while (dashTime < dashDuration)
-        {
+        {   
+            if (!isDashing) break;
+            
             dashTime += Time.deltaTime;
             ghostTimer -= Time.deltaTime;
 
@@ -895,9 +919,18 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKeyDown(interactKey)) Debug.Log("Interact with E!");
     }
 
-    public void TakeDamage(int damage)
+    // 🟢 อัปเกรด: เพิ่มพารามิเตอร์ bypassInvincibility เพื่อให้เลเซอร์ระดับสุดยอด ทะลวงอมตะได้!
+    public void TakeDamage(int damage, bool bypassInvincibility = false)
     {   
-        if (isInvincible) return;
+        if (isDead) return;
+        if (isInvincible && !bypassInvincibility) return;
+        
+        // 🟢 ถ้าถูกโจมตีแบบทะลวงอมตะ ให้กระชากผู้เล่นออกจากการพุ่งทันที!
+        if (bypassInvincibility)
+        {
+            isDashing = false;
+            isInvincible = false;
+        }
         
         isTargetDashing = false;
         if (rb != null) rb.gravityScale = defaultGravity; 
@@ -946,7 +979,11 @@ public class PlayerController : MonoBehaviour
 
     // 🟢 ลบ void Die() อันเก่าทิ้ง แล้วใช้อันนี้แทน
     void Die() 
-    { 
+    {   
+        if (isDead) return;
+        isDead = true; // ประกาศความตาย
+        
+        
         if (isInvincible) return; 
         isInvincible = true;
         
@@ -1008,6 +1045,27 @@ public class PlayerController : MonoBehaviour
         if (myCol != null) myCol.enabled = true;
     }
     
+    // 🟢 ระบบผลักกระเด็นที่สมบูรณ์แบบ (หยุดการบังคับชั่วคราวให้ตัวปลิวได้)
+    public void ApplyKnockback(Vector2 force, float duration)
+    {
+        if (isDead) return;
+
+        isKnockedBack = true;       // ทำให้ FixedUpdate ไม่มาแย่งคุมความเร็ว
+        knockbackTimer = duration;  // ระยะเวลาที่ขยับไม่ได้ (กำลังปลิว)
+        
+        // ปลดสถานะบล็อคหรือพุ่งออก
+        isBlocking = false;
+        isDashing = false;
+        isTargetDashing = false;
+        if (animator != null) animator.SetBool("isBlocking", false);
+
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero; // หยุดความเร็วเดิมทั้งหมดก่อน
+            rb.AddForce(force, ForceMode2D.Impulse); // กระแทกให้ปลิว!
+        }
+    }
+    
     private void OnDrawGizmosSelected()
     {
         if (groundCheck != null)
@@ -1029,6 +1087,7 @@ public class PlayerController : MonoBehaviour
     private void OnDisable()
     {
         // 1. ป้องกันบั๊ก HitStop ค้าง (เกม Freeze)
+        isDead = false;
         Time.timeScale = 1f;
         if (currentHitStop != null) currentHitStop = null;
 
@@ -1067,4 +1126,6 @@ public class PlayerController : MonoBehaviour
         // 🟢 คืนค่าเวลาเสมอเมื่อ Player ถูกทำลาย (กันเกมค้าง)
         Time.timeScale = 1f;
     }
+    
+    
 }

@@ -202,7 +202,7 @@ MonoBehaviour:
   alertIcon: {fileID: 0}
   obstacleLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 256
   wallCheckDist: 1
   panicDuration: 5
   projectilePrefab: {fileID: 2207432081361763248, guid: a945a0cebb6e3e14a9723ffaebdef9f2, type: 3}

@@ -16,6 +16,8 @@ public class HitSparkJuice : MonoBehaviour
     public float lifeTime = 0.15f;  // อายุไขถ้าเปิด Auto Destroy
 
     private Vector3 baseScale;
+    
+    [HideInInspector] public float externalScaleMultiplier = 1f;
 
     void Awake()
     {
@@ -45,6 +47,6 @@ public class HitSparkJuice : MonoBehaviour
         float lerpValue = (Mathf.Sin(Time.time * pulseSpeed) + 1f) / 2f;
         float currentScaleMultiplier = Mathf.Lerp(minScale, maxScale, lerpValue);
 
-        transform.localScale = baseScale * currentScaleMultiplier;
+        transform.localScale = baseScale * currentScaleMultiplier * externalScaleMultiplier;
     }
 }
