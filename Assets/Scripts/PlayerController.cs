@@ -47,6 +47,7 @@ public class PlayerController : MonoBehaviour
     // 🟢 ตัวแปรพระเอก: โล่อมตะ
     public bool isInvincible = false;
     public bool isDead = false;
+    public bool isRidingElevator = false;
     public bool isKnockedBack = false; // 🟢 ล็อคไม่ให้ขยับตอนกระเด็น
     private float knockbackTimer = 0f;
 
@@ -148,6 +149,7 @@ public class PlayerController : MonoBehaviour
     private void Start()
     {   
         isDead = false;
+        if (isRidingElevator) return;
         hasThrownSword = false;
         
         if (gameObject.name.Contains("Maris") && !gameObject.name.Contains("Sword")) 
@@ -234,6 +236,7 @@ public class PlayerController : MonoBehaviour
     private void FixedUpdate()
     {   
         if (isDead) return;
+        if (isRidingElevator) return;
         
         if (isTargetDashing || isStunned || isKnockedBack) 
         {
@@ -1116,6 +1119,27 @@ public class PlayerController : MonoBehaviour
         float timeLeft = nextThrowTime - Time.time;
         return 1f - (timeLeft / throwCooldown);    // คำนวณหลอดกำลังวิ่ง
     }
+    
+    // 🟢 ระบบปลด/ล็อค ฟิสิกส์ให้เกาะลิฟต์นิ่งๆ ไม่สั่น
+    public void SetRidingElevator(bool isRiding)
+    {
+        isRidingElevator = isRiding;
+        if (rb != null)
+        {
+            if (isRiding)
+            {
+                rb.linearVelocity = Vector2.zero;
+                rb.bodyType = RigidbodyType2D.Kinematic; // เปลี่ยนเป็นโหมดไร้น้ำหนักชั่วคราว จะได้เกาะลิฟต์เนียนๆ
+            }
+            else
+            {
+                rb.bodyType = RigidbodyType2D.Dynamic; // กลับเป็นฟิสิกส์ปกติ
+            }
+        }
+        
+        // บังคับหยุดแอนิเมชันเดิน
+        if (animator != null) animator.SetBool("isMoving", false);
+    }
 
     //ฟังก์ชันสำหรับให้ร่างใหม่ ดึงสเตตัสจากร่างเก่าไปใช้
     public float GetDashCooldown() { return dashCooldownTimer; }
@@ -1126,6 +1150,4 @@ public class PlayerController : MonoBehaviour
         // 🟢 คืนค่าเวลาเสมอเมื่อ Player ถูกทำลาย (กันเกมค้าง)
         Time.timeScale = 1f;
     }
-    
-    
 }

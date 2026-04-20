@@ -844,13 +844,16 @@ MonoBehaviour:
   crouchSpeed: 3
   acceleration: 10
   deceleration: 10
-  jumpForce: 8.5
+  jumpForce: 7.5
   jumpCutMultiplier: 0.5
   fallGravityMultiplier: 1.5
   coyoteTime: 0.15
   jumpBufferTime: 0.15
   dashDuration: 0.2
   isInvincible: 0
+  isDead: 0
+  isRidingElevator: 0
+  isKnockedBack: 0
   dashRange: 15
   dashSpeed: 10
   targetDashSpeed: 10
