@@ -347,7 +347,7 @@ ScriptedImporter:
     rect:
       serializedVersion: 2
       x: 4
-      y: 187
+      y: 185
       width: 33
       height: 52
     spriteID: 49ec094424ab3c0409c0e56ca17e8c76
@@ -369,8 +369,8 @@ ScriptedImporter:
       serializedVersion: 2
       x: 4
       y: 127
-      width: 33
-      height: 52
+      width: 37
+      height: 50
     spriteID: 875cded24f80c254a90be0faff5e8b3d
     spriteBone: []
     spriteOutline: []
@@ -411,8 +411,8 @@ ScriptedImporter:
       serializedVersion: 2
       x: 50
       y: 101
-      width: 33
-      height: 52
+      width: 30
+      height: 50
     spriteID: 76020f66af16bf14e86cf37e820db0bb
     spriteBone: []
     spriteOutline: []
@@ -475,7 +475,7 @@ ScriptedImporter:
       x: 151
       y: 4
       width: 65
-      height: 47
+      height: 46
     spriteID: 445880bb7a747bd43b863e778147a764
     spriteBone: []
     spriteOutline: []
@@ -535,11 +535,32 @@ ScriptedImporter:
     customData: 
     rect:
       serializedVersion: 2
-      x: 91
+      x: 88
       y: 101
       width: 30
       height: 50
     spriteID: 17197fe218f95df48b6af11af34408cf
+    spriteBone: []
+    spriteOutline: []
+    vertices: []
+    spritePhysicsOutline: []
+    indices: 
+    edges: []
+    tessellationDetail: 0
+    uvTransform: {x: 0, y: 0}
+  - name: Base_Decor_10
+    originalName: 
+    pivot: {x: 0.5, y: 0.5}
+    alignment: 0
+    border: {x: 0, y: 0, z: 0, w: 0}
+    customData: 
+    rect:
+      serializedVersion: 2
+      x: 50
+      y: 62
+      width: 69
+      height: 31
+    spriteID: 8914e7abbad34c84bb521c19a11fe7b8
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -630,27 +651,27 @@ ScriptedImporter:
       additiveSortOrder: 0
       cellRect:
         x: 23
-        y: 13
-        width: 33
-        height: 52
+        y: 14
+        width: 37
+        height: 50
       spriteId: 1844cf7cc022a344ea7974884944d324
     - name: Frame_8
       frameIndex: 8
       additiveSortOrder: 0
       cellRect:
-        x: 23
-        y: 13
-        width: 33
-        height: 52
+        x: 26
+        y: 14
+        width: 30
+        height: 50
       spriteId: 3cbd025705f368043a634e269e244591
     - name: Frame_9
       frameIndex: 9
       additiveSortOrder: 0
       cellRect:
-        x: 23
-        y: 13
-        width: 33
-        height: 52
+        x: 26
+        y: 14
+        width: 30
+        height: 50
       spriteId: ac63245ab5797c64383124916229a829
     - name: Frame_10
       frameIndex: 10
