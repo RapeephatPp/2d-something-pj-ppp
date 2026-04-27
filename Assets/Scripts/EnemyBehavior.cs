@@ -147,20 +147,25 @@ public class EnemyBehavior : MonoBehaviour
         }
 
         // 🟢 อัปเกรดใหม่: สั่งให้กล่องชน "ทุกใบ" ของศัตรู เมินกล่องชน "ทุกใบ" ของผู้เล่น
-        if (type == EnemyType.MeleeHostile || type == EnemyType.Passive || type == EnemyType.RangedHostile || type == EnemyType.StationaryTarget)
+        // 🟢 แทนที่บล็อค IgnoreCollision เดิม
+        if (type == EnemyType.MeleeHostile || type == EnemyType.Passive || 
+            type == EnemyType.RangedHostile || type == EnemyType.StationaryTarget)
         {
-            Collider2D[] myColliders = GetComponentsInChildren<Collider2D>(); // กวาดกล่องของตัวเอง
-            if (player != null)
+            Collider2D[] myColliders = GetComponentsInChildren<Collider2D>();
+    
+            // 🟢 เช็คทั้งสองร่าง ไม่ใช่แค่ตัวที่ Active อยู่
+            if (CharacterSwitcher.Instance != null)
             {
-                Collider2D[] playerColliders = player.GetComponentsInChildren<Collider2D>(); // กวาดกล่องของผู้เล่น
-                
+                // รวม Collider ของทั้งสองร่างไว้ใน List เดียว
+                var allPlayerCols = new System.Collections.Generic.List<Collider2D>();
+                if (CharacterSwitcher.Instance.unarmedPlayer != null)
+                    allPlayerCols.AddRange(CharacterSwitcher.Instance.unarmedPlayer.GetComponentsInChildren<Collider2D>());
+                if (CharacterSwitcher.Instance.armedPlayer != null)
+                    allPlayerCols.AddRange(CharacterSwitcher.Instance.armedPlayer.GetComponentsInChildren<Collider2D>());
+        
                 foreach (Collider2D myCol in myColliders)
-                {
-                    foreach (Collider2D pCol in playerColliders)
-                    {
-                        Physics2D.IgnoreCollision(myCol, pCol, true); // สั่งเมินกันและกัน 100%
-                    }
-                }
+                foreach (Collider2D pCol in allPlayerCols)
+                    Physics2D.IgnoreCollision(myCol, pCol, true);
             }
         }
     }
@@ -358,6 +363,18 @@ public class EnemyBehavior : MonoBehaviour
                 {
                     dirX = Random.Range(0, 2) == 0 ? 1f : -1f;
                 }
+
+                // 🟢 เช็คกำแพงก่อนผลัก
+                Vector2 rayOrigin = new Vector2(transform.position.x, transform.position.y + 0.6f);
+                Vector2 boxSize = new Vector2(0.5f, 0.2f);
+                RaycastHit2D wallHit = Physics2D.BoxCast(rayOrigin, boxSize, 0f, Vector2.right * dirX, 0.2f, obstacleLayer);
+                if (wallHit.collider != null) continue; // มีกำแพง → ข้ามไปเลย ห้ามผลัก
+
+                // 🟢 เช็คว่ามีพื้นรองรับทางที่จะผลักไหม (กันตกแมพ)
+                Vector2 groundCheckPos = new Vector2(transform.position.x + (dirX * separationRadius), transform.position.y);
+                RaycastHit2D groundHit = Physics2D.Raycast(groundCheckPos, Vector2.down, 1.5f, obstacleLayer);
+                if (groundHit.collider == null) continue; // ไม่มีพื้น → ห้ามผลัก
+
                 Vector3 pushVector = new Vector3(dirX * separationForce * Time.deltaTime, 0, 0);
                 transform.position += pushVector;
             }
@@ -665,16 +682,20 @@ public class EnemyBehavior : MonoBehaviour
     {
         if (dirX == 0) return;
 
-        // 🟢 ยกจุดเช็คสูงขึ้นมาที่ระดับอก (Y+0.6) และทำกล่องให้ "แบนลง" (กว้าง 0.5 สูง 0.2)
-        // เพื่อป้องกันไม่ให้มันไปชนกับพื้นหรือเนินลาดชัน
         Vector2 rayOrigin = new Vector2(transform.position.x, transform.position.y + 0.6f);
         Vector2 boxSize = new Vector2(0.5f, 0.2f);
-        
-        RaycastHit2D hit = Physics2D.BoxCast(rayOrigin, boxSize, 0f, Vector2.right * dirX, 0.1f, obstacleLayer);
+    
+        RaycastHit2D wallHit = Physics2D.BoxCast(rayOrigin, boxSize, 0f, Vector2.right * dirX, 0.1f, obstacleLayer);
 
-        // ถ้าทางสะดวก ไม่มีกำแพงขวาง ถึงจะเดินได้!
-        if (hit.collider == null)
+        if (wallHit.collider == null)
         {
+            // 🟢 เช็คว่ามีพื้นรองรับข้างหน้าก่อนจะก้าวเดิน
+            // ยิงเลเซอร์ลงพื้น ณ ตำแหน่งที่กำลังจะก้าวไป (ระยะ 0.6 ยูนิตข้างหน้า)
+            Vector2 groundCheckPos = new Vector2(transform.position.x + (dirX * 0.6f), transform.position.y + 0.1f);
+            RaycastHit2D groundHit = Physics2D.Raycast(groundCheckPos, Vector2.down, 1.5f, obstacleLayer);
+        
+            if (groundHit.collider == null) return; // ไม่มีพื้นข้างหน้า → ห้ามก้าว!
+
             Vector2 targetPos = new Vector2(transform.position.x + (dirX * currentSpeed * Time.deltaTime), transform.position.y);
             transform.position = targetPos;
         }

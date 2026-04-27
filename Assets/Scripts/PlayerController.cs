@@ -172,6 +172,7 @@ public class PlayerController : MonoBehaviour
     {   
         if (isDead) return;
         if (isDashing) return;
+        if (isRidingElevator) return;
         
         if (isKnockedBack)
         {
@@ -319,49 +320,37 @@ public class PlayerController : MonoBehaviour
 
     private void HandleJump()
     {   
+        // ระบบ Drop-through ยังคงอยู่ตามเดิม
         if (isGrounded && Input.GetKey(crouchKey) && Input.GetKeyDown(jumpKey))
         {
             if (currentOneWayPlatform != null)
             {
-                // 🟢 ดึงเวทมนตร์ Effector 2D ของบันไดออกมา
                 PlatformEffector2D effector = currentOneWayPlatform.GetComponent<PlatformEffector2D>();
                 if (effector != null)
                 {
-                    jumpBufferCounter = 0f; 
-                    StartCoroutine(FallThroughRoutine(effector)); // ส่งไปให้ฟังก์ชันด้านล่าง
-                    return; 
+                    jumpBufferCounter = 0f;
+                    StartCoroutine(FallThroughRoutine(effector));
+                    return;
                 }
             }
         }
         
-        if (jumpBufferCounter > 0f && coyoteTimeCounter > 0f)
-        {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
-            
-            // ใช้โควต้ากระโดดไปแล้ว ต้องรีเซ็ตเวลาทิ้งทันที ป้องกันการกระโดดเบิ้ล!
-            jumpBufferCounter = 0f; 
-            coyoteTimeCounter = 0f; 
-            canDoubleJump = true;
-            
-            if (animator != null) animator.SetTrigger("Jump");
-        }
-        
         if (isBlocking) return;
-
-        if (Input.GetKeyDown(jumpKey)) jumpBufferCounter = jumpBufferTime;
-        else jumpBufferCounter -= Time.deltaTime;
-
+        
         if (jumpBufferCounter > 0f && coyoteTimeCounter > 0f)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
             jumpBufferCounter = 0f;
             coyoteTimeCounter = 0f;
+            canDoubleJump = true;
+            if (animator != null) animator.SetTrigger("Jump");
         }
-        else if (Input.GetKeyDown(jumpKey) && canDoubleJump && coyoteTimeCounter <= 0f)
+        else if (Input.GetKeyDown(jumpKey) && canDoubleJump && !isGrounded)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
             canDoubleJump = false;
             jumpBufferCounter = 0f;
+            if (animator != null) animator.SetTrigger("Jump");
         }
 
         if (Input.GetKeyUp(jumpKey) && rb.linearVelocity.y > 0f)
@@ -984,10 +973,10 @@ public class PlayerController : MonoBehaviour
     void Die() 
     {   
         if (isDead) return;
-        isDead = true; // ประกาศความตาย
+        if (isInvincible) return;
         
         
-        if (isInvincible) return; 
+        isDead = true;
         isInvincible = true;
         
         if (rb != null) rb.linearVelocity = Vector2.zero;
@@ -1037,13 +1026,12 @@ public class PlayerController : MonoBehaviour
         // 1. รอให้ผู้เล่นซึมซับความตาย (ดูเลือดกระเด็น) สัก 1.5 วินาที
         yield return new WaitForSeconds(1.5f);
         
+        if (this == null || gameObject == null) yield break;
+        
         // 2. เรียกหน้าต่าง UI Game Over ขึ้นมา
         if (UIManager.Instance != null)
-        {
             UIManager.Instance.ShowGameOver();
-        }
-        
-        // คืนค่ากล่องชนเผื่อไว้ตอนโหลดฉากใหม่
+    
         Collider2D myCol = GetComponent<Collider2D>();
         if (myCol != null) myCol.enabled = true;
     }
