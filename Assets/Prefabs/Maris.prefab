@@ -169,6 +169,7 @@ GameObject:
   - component: {fileID: 7720628781297781979}
   - component: {fileID: 6052132129778559332}
   - component: {fileID: 6653848660093994333}
+  - component: {fileID: 1061058268760061306}
   m_Layer: 6
   m_Name: Maris
   m_TagString: Player
@@ -220,7 +221,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 7f218344d157eaf4e99871b4df63ddc2, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -466,6 +467,97 @@ CapsuleCollider2D:
   m_Offset: {x: -0.049053956, y: -0.05984726}
   m_Size: {x: 0.16080323, y: 0.35438082}
   m_Direction: 0
+--- !u!114 &1061058268760061306
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7686709608500125704}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7db70e0ea77f5ac47a8f4565a9406397, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.2D.Runtime::UnityEngine.Rendering.Universal.ShadowCaster2D
+  m_ShadowGroup: 0
+  m_Priority: 3
+  m_ComponentVersion: 5
+  m_HasRenderer: 1
+  m_UseRendererSilhouette: 1
+  m_CastsShadows: 1
+  m_SelfShadows: 0
+  m_AlphaCutoff: 0.1
+  m_ApplyToSortingLayers: 00000000
+  m_ShapePath:
+  - {x: -0.088966876, y: -0.17755477, z: 0}
+  - {x: -0.0980668, y: -0.17816596, z: 0}
+  - {x: -0.09811639, y: -0.062069505, z: 0}
+  - {x: -0.08671652, y: -0.061979134, z: 0}
+  - {x: -0.08802427, y: -0.02745433, z: 0}
+  - {x: -0.09822478, y: -0.027192786, z: 0}
+  - {x: -0.09796322, y: -0.017515369, z: 0}
+  - {x: -0.10816374, y: -0.016992258, z: 0}
+  - {x: -0.10816914, y: 0.047750723, z: 0}
+  - {x: -0.0975373, y: 0.048186295, z: 0}
+  - {x: -0.0975373, y: 0.0577752, z: 0}
+  - {x: -0.08712177, y: 0.0577752, z: 0}
+  - {x: -0.08712177, y: 0.06835605, z: 0}
+  - {x: -0.07769819, y: 0.06901735, z: 0}
+  - {x: -0.07788488, y: 0.07844093, z: 0}
+  - {x: -0.020991463, y: 0.07844092, z: 0}
+  - {x: -0.021156779, y: 0.06852137, z: 0}
+  - {x: -0.0024749727, y: 0.068190716, z: 0}
+  - {x: -0.0023096383, y: 0.05843651, z: 0}
+  - {x: 0.0074445694, y: 0.05827118, z: 0}
+  - {x: 0.00760991, y: 0.04868228, z: 0}
+  - {x: 0.017850747, y: 0.04866415, z: 0}
+  - {x: 0.018190691, y: -0.028028775, z: 0}
+  - {x: 0.007940486, y: -0.027863448, z: 0}
+  - {x: 0.008271146, y: -0.037452355, z: 0}
+  - {x: -0.01206393, y: -0.037782956, z: 0}
+  - {x: -0.011567943, y: -0.051670324, z: 0}
+  - {x: -0.0024750263, y: -0.051009025, z: 0}
+  - {x: -0.0011524201, y: -0.09085251, z: 0}
+  - {x: 0.008237732, y: -0.09173889, z: 0}
+  - {x: 0.008285457, y: -0.1677445, z: 0}
+  - {x: -0.0013550728, y: -0.16874611, z: 0}
+  - {x: -0.0021403283, y: -0.18818907, z: 0}
+  - {x: -0.011376436, y: -0.18797998, z: 0}
+  - {x: -0.011454955, y: -0.21962105, z: 0}
+  - {x: -0.029851263, y: -0.22042175, z: 0}
+  - {x: -0.029851263, y: -0.18991423, z: 0}
+  - {x: -0.050505407, y: -0.19048269, z: 0}
+  - {x: -0.049936958, y: -0.21985328, z: 0}
+  - {x: -0.06774881, y: -0.21966378, z: 0}
+  - {x: -0.06774881, y: -0.18801937, z: 0}
+  - {x: -0.08802398, y: -0.18801937, z: 0}
+  m_ShapePathHash: -1901685449
+  m_InstanceId: 0
+  m_ShadowShape2DComponent: {fileID: 6555778821803527789}
+  m_ShadowShape2DProvider:
+    rid: 1204823516452749557
+  m_ShadowCastingSource: 2
+  m_ShadowMesh:
+    m_Mesh: {fileID: 0}
+    m_LocalBounds:
+      m_Center: {x: -0.04499817, y: -0.055000305, z: 0}
+      m_Extent: {x: 0.034988403, y: 0.13498688, z: 0}
+    m_EdgeProcessing: 1
+    m_TrimEdge: 0.03
+    m_FlipX: 0
+    m_FlipY: 0
+    m_InitialTrim: 0.03
+  m_CastingOption: 1
+  m_PreviousTrimEdge: 0.03
+  m_PreviousEdgeProcessing: 1
+  m_PreviousShadowCastingSource: 2
+  m_PreviousShadowShape2DSource: {fileID: 6555778821803527789}
+  references:
+    version: 2
+    RefIds:
+    - rid: 1204823516452749557
+      type: {class: ShadowShape2DProvider_SpriteRenderer, ns: UnityEngine.Rendering.Universal, asm: Unity.RenderPipelines.Universal.2D.Runtime}
+      data: 
 --- !u!1001 &4205327522775883236
 PrefabInstance:
   m_ObjectHideFlags: 0

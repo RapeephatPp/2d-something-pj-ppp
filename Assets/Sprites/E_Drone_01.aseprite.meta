@@ -141,7 +141,48 @@ ScriptedImporter:
       height: 24
     spriteID: c040bb4ad94264e48bc3112672149dd5
     spriteBone: []
-    spriteOutline: []
+    spriteOutline:
+    - outline:
+      - {x: -3, y: -11}
+      - {x: 0, y: -9}
+      - {x: 4, y: -6}
+      - {x: 6, y: -8}
+      - {x: 11, y: -8}
+      - {x: 12, y: -7}
+      - {x: 14, y: -3}
+      - {x: 17, y: 0}
+      - {x: 18, y: 2}
+      - {x: 20, y: 4}
+      - {x: 21, y: 5}
+      - {x: 21, y: 7}
+      - {x: 20, y: 8}
+      - {x: 18, y: 9}
+      - {x: 14, y: 9}
+      - {x: 13, y: 8}
+      - {x: 12, y: 4}
+      - {x: 8, y: 6}
+      - {x: 5, y: 7}
+      - {x: -5, y: 7}
+      - {x: -5, y: 11}
+      - {x: -6, y: 12}
+      - {x: -11, y: 12}
+      - {x: -12, y: 11}
+      - {x: -12, y: 8}
+      - {x: -11, y: 5}
+      - {x: -13, y: 3}
+      - {x: -15, y: 5}
+      - {x: -19, y: 5}
+      - {x: -21, y: 3}
+      - {x: -21, y: 1}
+      - {x: -20, y: 0}
+      - {x: -18, y: -2}
+      - {x: -16, y: -3}
+      - {x: -7, y: -3}
+      - {x: -8, y: -5}
+      - {x: -11, y: -8}
+      - {x: -11, y: -11}
+      - {x: -10, y: -12}
+      - {x: -5, y: -12}
     vertices: []
     spritePhysicsOutline: []
     indices: 
@@ -162,7 +203,48 @@ ScriptedImporter:
       height: 24
     spriteID: 2ac6aa1655bf3174ea884b924a0213b2
     spriteBone: []
-    spriteOutline: []
+    spriteOutline:
+    - outline:
+      - {x: -3, y: -11}
+      - {x: 0, y: -9}
+      - {x: 4, y: -6}
+      - {x: 6, y: -8}
+      - {x: 11, y: -8}
+      - {x: 12, y: -7}
+      - {x: 14, y: -3}
+      - {x: 17, y: 0}
+      - {x: 18, y: 2}
+      - {x: 20, y: 4}
+      - {x: 21, y: 5}
+      - {x: 21, y: 7}
+      - {x: 20, y: 8}
+      - {x: 18, y: 9}
+      - {x: 14, y: 9}
+      - {x: 13, y: 8}
+      - {x: 12, y: 4}
+      - {x: 8, y: 6}
+      - {x: 5, y: 7}
+      - {x: -5, y: 7}
+      - {x: -5, y: 11}
+      - {x: -6, y: 12}
+      - {x: -11, y: 12}
+      - {x: -12, y: 11}
+      - {x: -12, y: 8}
+      - {x: -11, y: 5}
+      - {x: -13, y: 3}
+      - {x: -15, y: 5}
+      - {x: -19, y: 5}
+      - {x: -21, y: 3}
+      - {x: -21, y: 1}
+      - {x: -20, y: 0}
+      - {x: -18, y: -2}
+      - {x: -16, y: -3}
+      - {x: -7, y: -3}
+      - {x: -8, y: -5}
+      - {x: -11, y: -8}
+      - {x: -11, y: -11}
+      - {x: -10, y: -12}
+      - {x: -5, y: -12}
     vertices: []
     spritePhysicsOutline: []
     indices: 
@@ -183,7 +265,48 @@ ScriptedImporter:
       height: 24
     spriteID: 434d87b2975f03041841e91ebc8b7734
     spriteBone: []
-    spriteOutline: []
+    spriteOutline:
+    - outline:
+      - {x: -3, y: -11}
+      - {x: 0, y: -9}
+      - {x: 4, y: -6}
+      - {x: 6, y: -8}
+      - {x: 11, y: -8}
+      - {x: 12, y: -7}
+      - {x: 14, y: -3}
+      - {x: 17, y: 0}
+      - {x: 18, y: 2}
+      - {x: 20, y: 4}
+      - {x: 21, y: 5}
+      - {x: 21, y: 7}
+      - {x: 20, y: 8}
+      - {x: 18, y: 9}
+      - {x: 14, y: 9}
+      - {x: 13, y: 8}
+      - {x: 12, y: 4}
+      - {x: 8, y: 6}
+      - {x: 5, y: 7}
+      - {x: -5, y: 7}
+      - {x: -5, y: 11}
+      - {x: -6, y: 12}
+      - {x: -11, y: 12}
+      - {x: -12, y: 11}
+      - {x: -12, y: 8}
+      - {x: -11, y: 5}
+      - {x: -13, y: 3}
+      - {x: -15, y: 5}
+      - {x: -19, y: 5}
+      - {x: -21, y: 3}
+      - {x: -21, y: 1}
+      - {x: -20, y: 0}
+      - {x: -18, y: -2}
+      - {x: -16, y: -3}
+      - {x: -7, y: -3}
+      - {x: -8, y: -5}
+      - {x: -11, y: -8}
+      - {x: -11, y: -11}
+      - {x: -10, y: -12}
+      - {x: -5, y: -12}
     vertices: []
     spritePhysicsOutline: []
     indices: 
@@ -204,12 +327,53 @@ ScriptedImporter:
       height: 24
     spriteID: 28a38ff68338b504082a420414e6cd4e
     spriteBone: []
-    spriteOutline: []
+    spriteOutline:
+    - outline:
+      - {x: -3, y: -11}
+      - {x: 0, y: -9}
+      - {x: 4, y: -6}
+      - {x: 6, y: -8}
+      - {x: 11, y: -8}
+      - {x: 12, y: -7}
+      - {x: 14, y: -3}
+      - {x: 17, y: 0}
+      - {x: 18, y: 2}
+      - {x: 20, y: 4}
+      - {x: 21, y: 5}
+      - {x: 21, y: 7}
+      - {x: 20, y: 8}
+      - {x: 18, y: 9}
+      - {x: 14, y: 9}
+      - {x: 13, y: 8}
+      - {x: 12, y: 4}
+      - {x: 8, y: 6}
+      - {x: 5, y: 7}
+      - {x: -5, y: 7}
+      - {x: -5, y: 11}
+      - {x: -6, y: 12}
+      - {x: -11, y: 12}
+      - {x: -12, y: 11}
+      - {x: -12, y: 8}
+      - {x: -11, y: 5}
+      - {x: -13, y: 3}
+      - {x: -15, y: 5}
+      - {x: -19, y: 5}
+      - {x: -21, y: 3}
+      - {x: -21, y: 1}
+      - {x: -20, y: 0}
+      - {x: -18, y: -2}
+      - {x: -16, y: -3}
+      - {x: -7, y: -3}
+      - {x: -8, y: -5}
+      - {x: -11, y: -8}
+      - {x: -11, y: -11}
+      - {x: -10, y: -12}
+      - {x: -5, y: -12}
     vertices: []
     spritePhysicsOutline: []
     indices: 
     edges: []
-    tessellationDetail: 0
+    tessellationDetail: 1
     uvTransform: {x: 4, y: 100}
   spriteSheetImportData: []
   tileSetImportData: []

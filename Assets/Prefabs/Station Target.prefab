@@ -45,6 +45,7 @@ GameObject:
   - component: {fileID: 5222881406764555031}
   - component: {fileID: 2876666859752596452}
   - component: {fileID: 1976694149954496898}
+  - component: {fileID: 128675507586832531}
   m_Layer: 7
   m_Name: Station Target
   m_TagString: Enemy
@@ -95,7 +96,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 7f218344d157eaf4e99871b4df63ddc2, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -284,6 +285,59 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &128675507586832531
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6303577299756386706}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7db70e0ea77f5ac47a8f4565a9406397, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.2D.Runtime::UnityEngine.Rendering.Universal.ShadowCaster2D
+  m_ShadowGroup: 0
+  m_Priority: 2
+  m_ComponentVersion: 5
+  m_HasRenderer: 1
+  m_UseRendererSilhouette: 1
+  m_CastsShadows: 1
+  m_SelfShadows: 0
+  m_AlphaCutoff: 0.1
+  m_ApplyToSortingLayers: 00000000
+  m_ShapePath:
+  - {x: -0.19000244, y: 0.23000336, z: 0}
+  - {x: -0.19000244, y: 0.43000412, z: 0}
+  - {x: 0.22999573, y: 0.43000412, z: 0}
+  - {x: 0.22999573, y: 0.23000336, z: 0}
+  m_ShapePathHash: 0
+  m_InstanceId: 0
+  m_ShadowShape2DComponent: {fileID: 1901962652336112819}
+  m_ShadowShape2DProvider:
+    rid: 1204823516452749600
+  m_ShadowCastingSource: 2
+  m_ShadowMesh:
+    m_Mesh: {fileID: 0}
+    m_LocalBounds:
+      m_Center: {x: 0.020004272, y: 0.3299942, z: 0}
+      m_Extent: {x: 0.20698547, y: 0.09699249, z: 0}
+    m_EdgeProcessing: 1
+    m_TrimEdge: 0.003
+    m_FlipX: 0
+    m_FlipY: 0
+    m_InitialTrim: 0.03
+  m_CastingOption: 1
+  m_PreviousTrimEdge: 0.003
+  m_PreviousEdgeProcessing: 1
+  m_PreviousShadowCastingSource: 2
+  m_PreviousShadowShape2DSource: {fileID: 1901962652336112819}
+  references:
+    version: 2
+    RefIds:
+    - rid: 1204823516452749600
+      type: {class: ShadowShape2DProvider_SpriteRenderer, ns: UnityEngine.Rendering.Universal, asm: Unity.RenderPipelines.Universal.2D.Runtime}
+      data: 
 --- !u!1001 &5176647450442256959
 PrefabInstance:
   m_ObjectHideFlags: 0
