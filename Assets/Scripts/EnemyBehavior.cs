@@ -120,6 +120,10 @@ public class EnemyBehavior : MonoBehaviour
     public float bloodSpread = 1.5f;    
     public float bloodHeightOffset = 1.0f;
     
+    [Header("Stun Effect (Thrown Sword)")]
+    public GameObject dizzyEffect; // ลาก GameObject เอฟเฟคดาวหมุนๆ มาใส่ช่องนี้
+    private bool isSwordStunned = false; // ตัวแปรเช็คว่ามึนอยู่ไหม
+    
     [Header("Chaser Settings")]
     public bool waitToChase = false;
     private bool isChasing = false;
@@ -127,9 +131,14 @@ public class EnemyBehavior : MonoBehaviour
     [Header("AI Spacing (Anti-Overlap)")]
     public float separationRadius = 0.8f; 
     public float separationForce = 1.5f;  
+    
+    [Header("Raycast Tuning")]
+    [Tooltip("ปรับจุดกำเนิดเลเซอร์ให้ยื่นออกจากตัว ป้องกันการยิงติด Collider ตัวเอง (X: แนวนอน, Y: แนวตั้ง)")]
+    public Vector2 raycastOffset = Vector2.zero; 
 
     void Start()
     {   
+        if (dizzyEffect != null) dizzyEffect.SetActive(false);
         spawnTime = Time.time;
         currentHealth = maxHealth;
         startPosition = transform.position;
@@ -179,6 +188,8 @@ public class EnemyBehavior : MonoBehaviour
             else return; 
         }
         
+        if (isSwordStunned && type != EnemyType.BigChaser) return;
+        
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
 
         switch (type)
@@ -190,8 +201,7 @@ public class EnemyBehavior : MonoBehaviour
             case EnemyType.StationaryTarget: break;
             case EnemyType.BigChaser: HandleBigChaser(); break;
         }
-
-        // อัปเกรดระบบล็อคขา ไม่ให้โดนศัตรูตัวอื่นเบียดกระเด็น
+        
         bool shouldSeparate = true;
         if (type == EnemyType.Passive) 
         {
@@ -212,9 +222,6 @@ public class EnemyBehavior : MonoBehaviour
         }
     }
     
-    // ==========================================
-    // 🟢 NEW: ระบบตัดสินใจของศัตรูสายยิง (Ranged AI)
-    // ==========================================
     void HandleRangedHostile(float distance)
     {
         // ถ้าง้างปืนอยู่ หรือโดนตีถอยหลัง ห้ามเดินหรือคิดอะไรทั้งนั้น
@@ -225,7 +232,7 @@ public class EnemyBehavior : MonoBehaviour
             // --- เจอผู้เล่นแล้ว ---
             
             // 1. ถ้าไม่ใช่สายยืนนิ่งๆ และผู้เล่นเข้ามาใกล้เกินไป (เข้าระยะ Safe Distance)
-            if (!isStationaryShooter && distance < safeDistance)
+            if (!isStationaryShooter && distance < (willStandGround ? safeDistance : safeDistance + 0.5f))
             {
                 // ทอยลูกเต๋าตัดสินใจทุกๆ 2 วินาที ว่าจะ "หนี" หรือ "ยืนแลก"
                 if (Time.time > nextKiteDecisionTime)
@@ -239,7 +246,7 @@ public class EnemyBehavior : MonoBehaviour
                     // ตัดสินใจหนี!
                     MoveAwayFromPlayer();
                     if (animator != null) animator.SetBool("isMoving", true);
-                    return; // ยกเลิกการยิงไปเลย มุ่งหน้าหนีอย่างเดียว
+                    return; 
                 }
             }
 
@@ -323,14 +330,19 @@ public class EnemyBehavior : MonoBehaviour
 
     // 🟢 ระบบเดินเล่นลาดตระเวน (ใช้ร่วมกันได้ทั้ง Passive และ Ranged)
     // 🟢 ระบบเดินเล่นลาดตระเวน (อัปเกรดให้เดินๆ หยุดๆ เนียนขึ้น)
+    // 🟢 อัปเกรด: ระบบเดินเล่นลาดตระเวน (แก้บัคย่ำเท้าอยู่กับที่)
     void IdleWander()
     {
         Vector2 centerPoint = safeZone != null ? (Vector2)safeZone.position : startPosition;
         wanderTimer -= Time.deltaTime;
 
-        if (Mathf.Abs(transform.position.x - wanderTarget.x) < 0.1f)
+        bool isCloseToTarget = Mathf.Abs(transform.position.x - wanderTarget.x) < 0.1f;
+
+        // ถ้าถึงที่หมายแล้ว หรือ ติดบัคยืนแช่นานเกินไป (wanderTimer ติดลบเกิน 2 วิ) ให้หาเป้าหมายใหม่!
+        if (isCloseToTarget || wanderTimer <= -2f)
         {
             if (animator != null) animator.SetBool("isMoving", false); 
+            
             if (wanderTimer <= 0)
             {
                 float randomX = Random.Range(-wanderRadius, wanderRadius);
@@ -342,14 +354,20 @@ public class EnemyBehavior : MonoBehaviour
         {
             if (animator != null) animator.SetBool("isMoving", true); 
             float dirX = Mathf.Sign(wanderTarget.x - transform.position.x);
-            SafeMoveX(dirX, speed * 0.5f); // 🟢 ใช้เดินแบบปลอดภัย
+            
+            // ลองเดินดู ถ้าเดินไม่ได้ (ติดเหว/กำแพง)
+            bool successfullyMoved = SafeMoveX(dirX, speed * 0.5f); 
+            
+            if (!successfullyMoved)
+            {
+                // ถ้าติดเหวหรือกำแพง ให้ล้างเวลาทิ้ง เพื่อบังคับให้มันคิดหาทิศทางเดินใหม่ทันที!
+                wanderTimer = 0f; 
+                if (animator != null) animator.SetBool("isMoving", false);
+            }
+
             FlipSprite(wanderTarget.x);
         }
     }
-
-    // ==========================================
-    // โค้ดส่วนอื่นๆ ปล่อยไว้เหมือนเดิม (ถูกห่อรวมไว้ในคลาสนี้แล้ว)
-    // ==========================================
 
     void SeparateFromOtherEnemies()
     {
@@ -675,30 +693,42 @@ public class EnemyBehavior : MonoBehaviour
         if (isChasing) MoveTowardsPlayer(); 
     }
 
-    // ==========================================
-    // 🟢 ระบบเดินแบบปลอดภัย 100% (แก้ไขไม่ให้เรดาร์ขูดพื้น)
-    // ==========================================
-    void SafeMoveX(float dirX, float currentSpeed)
-    {
-        if (dirX == 0) return;
-
-        Vector2 rayOrigin = new Vector2(transform.position.x, transform.position.y + 0.6f);
-        Vector2 boxSize = new Vector2(0.5f, 0.2f);
     
-        RaycastHit2D wallHit = Physics2D.BoxCast(rayOrigin, boxSize, 0f, Vector2.right * dirX, 0.1f, obstacleLayer);
+    // ==========================================
+    // 🟢 ระบบเดินปลอดภัย: อัปเกรดรองรับ Raycast Offset หนี Collider
+    // ==========================================
+    bool SafeMoveX(float dirX, float currentSpeed)
+    {
+        if (dirX == 0) return false;
 
-        if (wallHit.collider == null)
-        {
-            // 🟢 เช็คว่ามีพื้นรองรับข้างหน้าก่อนจะก้าวเดิน
-            // ยิงเลเซอร์ลงพื้น ณ ตำแหน่งที่กำลังจะก้าวไป (ระยะ 0.6 ยูนิตข้างหน้า)
-            Vector2 groundCheckPos = new Vector2(transform.position.x + (dirX * 0.6f), transform.position.y + 0.1f);
-            RaycastHit2D groundHit = Physics2D.Raycast(groundCheckPos, Vector2.down, 1.5f, obstacleLayer);
-        
-            if (groundHit.collider == null) return; // ไม่มีพื้นข้างหน้า → ห้ามก้าว!
+        float wallCheckDist = 0.3f; 
 
-            Vector2 targetPos = new Vector2(transform.position.x + (dirX * currentSpeed * Time.deltaTime), transform.position.y);
-            transform.position = targetPos;
-        }
+        // 🟢 สร้างจุดอ้างอิงใหม่ที่บวกค่า Offset เข้าไปแล้ว (คูณ dirX ให้ขยับตามหน้าเว็บที่หัน)
+        Vector2 basePosition = new Vector2(
+            transform.position.x + (raycastOffset.x * dirX), 
+            transform.position.y + raycastOffset.y
+        );
+
+        // 1. เช็คกำแพงด้วยเลเซอร์เส้นบน
+        Vector2 originTop = new Vector2(basePosition.x, basePosition.y + 0.8f);
+        RaycastHit2D wallTop = Physics2D.Raycast(originTop, Vector2.right * dirX, wallCheckDist, obstacleLayer);
+
+        // 2. เช็คกำแพงด้วยเลเซอร์เส้นล่าง
+        Vector2 originBottom = new Vector2(basePosition.x, basePosition.y + 0.2f);
+        RaycastHit2D wallBottom = Physics2D.Raycast(originBottom, Vector2.right * dirX, wallCheckDist, obstacleLayer);
+
+        if (wallTop.collider != null || wallBottom.collider != null) return false;
+
+        // 3. เช็คพื้น (ยื่นเลเซอร์ไปข้างหน้า 0.5 หน่วย จากจุดฐานใหม่)
+        Vector2 groundCheckPos = new Vector2(basePosition.x + (dirX * 0.5f), basePosition.y + 0.2f);
+        RaycastHit2D groundHit = Physics2D.Raycast(groundCheckPos, Vector2.down, 1.5f, obstacleLayer);
+    
+        if (groundHit.collider == null) return false; 
+
+        // 4. เดินได้!
+        Vector2 targetPos = new Vector2(transform.position.x + (dirX * currentSpeed * Time.deltaTime), transform.position.y);
+        transform.position = targetPos;
+        return true; 
     }
 
     void MoveTowardsPlayer()
@@ -714,7 +744,7 @@ public class EnemyBehavior : MonoBehaviour
         float dirX = Mathf.Sign(player.position.x - transform.position.x);
         if (Mathf.Abs(player.position.x - transform.position.x) > 0.1f)
         {
-            SafeMoveX(dirX, speed); // 🟢 ใช้เดินแบบปลอดภัย
+            SafeMoveX(dirX, speed); 
             FlipSprite(player.position.x);
         }
     }
@@ -732,7 +762,7 @@ public class EnemyBehavior : MonoBehaviour
         float dirX = Mathf.Sign(transform.position.x - player.position.x);
         if (dirX == 0) dirX = 1f;
 
-        SafeMoveX(dirX, speed * 1.2f); // 🟢 ใช้เดินแบบปลอดภัย
+        SafeMoveX(dirX, speed * 1.2f); 
         FlipSprite(transform.position.x + dirX);
     }
 
@@ -785,6 +815,56 @@ public class EnemyBehavior : MonoBehaviour
         }
     }
 
+    // 🟢 ฟังก์ชันใหม่: โดนดาบปาใส่ (ลดเลือด + ติดมึนงง โดยไม่กระเด็น)
+    public void ApplySwordStun(int damageAmount, float stunDuration)
+    {
+        if (type == EnemyType.BigChaser) return; // บอสไม่โดนสตัน
+
+        currentHealth -= damageAmount;
+
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
+        else
+        {
+            // ถ้ายังไม่ตาย ให้ติดสตัน
+            StartCoroutine(SwordStunRoutine(stunDuration));
+        }
+    }
+
+    // 🟢 กระบวนการทำมึนงง
+    IEnumerator SwordStunRoutine(float duration)
+    {
+        isSwordStunned = true;
+        
+        // ยกเลิกสถานะการโจมตี/เดิน อื่นๆ ทั้งหมด
+        isRetreating = false; 
+        isLunging = false;
+        isPreparingMelee = false;
+        isRangedAiming = false;
+
+        // สั่งหยุดเดินและเล่นอนิเมชันเจ็บ
+        if (animator != null)
+        {
+            animator.SetBool("isMoving", false);
+            animator.SetTrigger("Hurt");
+            animator.SetBool("isStunned", true); // ถ้าคุณมี State นี้ใน Animator
+        }
+
+        // 🌟 เปิด GameObject เอฟเฟควินเวียน
+        if (dizzyEffect != null) dizzyEffect.SetActive(true);
+
+        // รอเวลาให้หายมึน
+        yield return new WaitForSeconds(duration);
+
+        // 🌟 ปิด GameObject เอฟเฟควินเวียน
+        if (dizzyEffect != null) dizzyEffect.SetActive(false);
+        if (animator != null) animator.SetBool("isStunned", false);
+
+        isSwordStunned = false; // กลับมาขยับได้ปกติ
+    }
+    
     IEnumerator RetreatRoutine()
     {
         isRetreating = true;
@@ -868,6 +948,8 @@ public class EnemyBehavior : MonoBehaviour
     
     private void OnDrawGizmosSelected()
     {
+        // ... (โค้ดวาดระยะการมองเห็นสีเหลือง/แดง/ส้มด้านบน ปล่อยไว้เหมือนเดิม) ...
+
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, detectionRange);
 
@@ -876,7 +958,6 @@ public class EnemyBehavior : MonoBehaviour
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(transform.position, lungeRange);
         }
-        // 🟢 เพิ่มวาดวงกลมสีส้ม สำหรับระยะวิ่งหนีของสายปืน
         else if (type == EnemyType.RangedHostile)
         {
             Gizmos.color = new Color(1f, 0.5f, 0f); // สีส้ม
@@ -888,6 +969,28 @@ public class EnemyBehavior : MonoBehaviour
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(firePoint.position, 0.15f);
         }
+
+        // ==========================================
+        // 🟢 DEBUG GIZMOS: เลเซอร์เช็คทาง (อัปเดตตาม Offset)
+        // ==========================================
+        float fakeDirX = transform.localScale.x > 0 ? 1f : -1f; 
+        
+        Vector2 basePosGizmo = new Vector2(
+            transform.position.x + (raycastOffset.x * fakeDirX), 
+            transform.position.y + raycastOffset.y
+        );
+
+        // 1. วาดเลเซอร์เช็คกำแพง (เส้นบน-ล่าง สีฟ้า)
+        Gizmos.color = Color.cyan;
+        Vector2 originTop = new Vector2(basePosGizmo.x, basePosGizmo.y + 0.8f);
+        Vector2 originBottom = new Vector2(basePosGizmo.x, basePosGizmo.y + 0.2f);
+        Gizmos.DrawLine(originTop, originTop + (Vector2.right * fakeDirX * 0.3f));
+        Gizmos.DrawLine(originBottom, originBottom + (Vector2.right * fakeDirX * 0.3f));
+
+        // 2. วาดเส้นเช็คพื้น (สีเขียว)
+        Gizmos.color = Color.green;
+        Vector2 groundCheckPos = new Vector2(basePosGizmo.x + (fakeDirX * 0.5f), basePosGizmo.y + 0.2f);
+        Gizmos.DrawLine(groundCheckPos, groundCheckPos + (Vector2.down * 1.5f));
     }
     
     private void OnCollisionEnter2D(Collision2D collision)

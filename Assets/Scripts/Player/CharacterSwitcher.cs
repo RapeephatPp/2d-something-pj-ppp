@@ -117,6 +117,8 @@ public class CharacterSwitcher : MonoBehaviour
 
         if (cameraFollow != null) cameraFollow.target = unarmedPlayer.transform;
     }
+    
+    
 
     public void TeleportActivePlayer(Vector3 newPosition)
     {

@@ -8,6 +8,7 @@ TagManager:
   - Enemy
   - Weapon
   - EnemyProjectile
+  - Boss
   layers:
   - Default
   - TransparentFX

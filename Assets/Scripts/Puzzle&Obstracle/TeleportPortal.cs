@@ -1,12 +1,24 @@
 using UnityEngine;
 using System.Collections;
 
+// 🟢 1. สร้างตัวเลือก (Enum) ให้เราเลือกใน Inspector ได้ง่ายๆ
+public enum TargetFormMode
+{
+    KeepCurrent, // ไม่เปลี่ยน คงร่างเดิมไว้
+    ForceArmed,  // บังคับเปลี่ยนเป็นร่างถือดาบ
+    ForceUnarmed // บังคับเปลี่ยนเป็นร่างมือเปล่า
+}
+
 public class TeleportPortal : MonoBehaviour
 {
     [Header("Portal Settings")]
     public TeleportPortal destinationPortal; // ลากประตูปลายทางมาใส่ช่องนี้
     public KeyCode interactKey = KeyCode.E;  // ปุ่มสำหรับกดวาร์ป
     public bool autoTeleport = false;        // ถ้าติ๊กถูก จะวาร์ปทันทีที่เดินชน (ไม่ต้องกด E)
+    
+    [Header("Character Form Override")]
+    [Tooltip("เมื่อวาร์ปผ่านจุดนี้ จะบังคับเปลี่ยนเป็นร่างไหน?")]
+    public TargetFormMode formAfterTeleport = TargetFormMode.KeepCurrent; // 🟢 2. เพิ่มตัวแปรให้เลือกโหมด
 
     [Header("Visuals")]
     public GameObject interactPrompt;        // ป้าย "Press E" (ถ้ามี)
@@ -32,33 +44,42 @@ public class TeleportPortal : MonoBehaviour
     {
         isTeleporting = true;
 
-        // 1. เริ่มการ Fade จอดำ (เรียกใช้ ScreenFader ที่คุณมีอยู่แล้ว)
+        // 1. เริ่มการ Fade จอดำ
         if (ScreenFader.Instance != null)
         {
             yield return StartCoroutine(ScreenFader.Instance.FadeRoutine(1f));
         }
 
-        // 2. ย้ายตำแหน่งตัวละครไปที่ประตูปลายทาง
-        // ใช้ฟังก์ชันจาก CharacterSwitcher เพื่อให้ย้ายได้ทั้งร่างถือดาบและร่างมือเปล่า
+        // 🟢 2. เช็คและเปลี่ยนร่างตัวละคร (ทำตอนที่จอมืดสนิทไปแล้ว ผู้เล่นจะไม่เห็นจังหวะกระพริบ)
         if (CharacterSwitcher.Instance != null)
         {
+            if (formAfterTeleport == TargetFormMode.ForceArmed)
+            {
+                CharacterSwitcher.Instance.SwitchToArmed();
+            }
+            else if (formAfterTeleport == TargetFormMode.ForceUnarmed)
+            {
+                CharacterSwitcher.Instance.SwitchToUnarmed();
+            }
+
+            // 3. ย้ายตำแหน่งตัวละครร่างที่กำลัง Active ไปที่ประตูปลายทาง
             CharacterSwitcher.Instance.TeleportActivePlayer(destinationPortal.transform.position);
         }
 
-        // 3. รอสักนิดเพื่อให้กล้องขยับตามทัน
+        // 4. รอสักนิดเพื่อให้กล้องขยับตามทัน
         yield return new WaitForSeconds(0.1f);
 
-        // 4. Fade จอให้สว่างขึ้น
+        // 5. Fade จอให้สว่างขึ้น
         if (ScreenFader.Instance != null)
         {
             yield return StartCoroutine(ScreenFader.Instance.FadeRoutine(0f));
         }
 
-        // 5. ปลดล็อคให้วาร์ปต่อได้ (ใส่ Delay เล็กน้อยกันการวาร์ปกลับทันที)
+        // 6. ปลดล็อคให้วาร์ปต่อได้
         yield return new WaitForSeconds(0.5f);
         isTeleporting = false;
     }
-
+    
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Player"))

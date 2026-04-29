@@ -44,7 +44,7 @@ public class ChaserBoss : MonoBehaviour
             Destroy(rock.gameObject); // บดขยี้หินทิ้ง
         }
         // 2. โดนผู้เล่นปาดาบใส่ตรงๆ (ปาอัดหน้า)
-        else if (collision.CompareTag("PlayerAttack") || collision.gameObject.name.Contains("Sword")) 
+        else if (collision.CompareTag("Weapon") || collision.gameObject.name.Contains("Sword")) 
         {
             // เด้งดาบออก เลือดไม่ลด! สอนผู้เล่นว่า "ปาใส่หินสิโว้ย!"
             TakeDamage(0, false); 

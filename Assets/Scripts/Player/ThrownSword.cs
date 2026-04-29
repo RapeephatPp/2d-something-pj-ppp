@@ -7,6 +7,7 @@ public class ThrownSword : MonoBehaviour
     public float returnSpeed = 35f; 
     public float embedDepth = 0.5f; 
     public int throwDamage = 15;    
+    public float stunDuration = 0.3f;
 
     private Rigidbody2D rb;
     private Collider2D col;
@@ -108,7 +109,15 @@ public class ThrownSword : MonoBehaviour
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
-    {
+    {   
+        if (collision.isTrigger)
+        {
+            if (!collision.CompareTag("Enemy") && !collision.CompareTag("Boss")) 
+            {
+                return; // เมินสิ่งนี้ซะ!
+            }
+        }
+        
         HandleImpact(collision.gameObject);
     }
 
@@ -120,7 +129,12 @@ public class ThrownSword : MonoBehaviour
         if (hitObj.CompareTag("Enemy"))
         {
             EnemyBehavior enemy = hitObj.GetComponent<EnemyBehavior>();
-            if (enemy != null) enemy.TakeDamage(throwDamage);
+            if (enemy != null) 
+            {
+                // 🟢 เปลี่ยนมาเรียกใช้ฟังก์ชันทำสตันแทน TakeDamage() เดิม! 
+                // ทำให้ศัตรูไม่ปลิวกระเด็นอีกต่อไป
+                enemy.ApplySwordStun(throwDamage, stunDuration);
+            }
             FallToGround(); 
             return;
         }
