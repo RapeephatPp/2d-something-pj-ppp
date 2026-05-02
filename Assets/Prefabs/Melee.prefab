@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 3959985999966288405}
   - component: {fileID: 7377278857762156085}
   - component: {fileID: 1786003793442817514}
+  - component: {fileID: 3057274197778571174}
   m_Layer: 7
   m_Name: Melee
   m_TagString: Enemy
@@ -156,6 +157,11 @@ MonoBehaviour:
   waitToChase: 0
   separationRadius: 0.8
   separationForce: 1.5
+  alertSound: {fileID: 8300000, guid: e02dfadef90b4a5438f78b2b94e32e5c, type: 3}
+  attackSound: {fileID: 8300000, guid: 5aa890754fbeb6c4da878ce836e612b6, type: 3}
+  hurtSound: {fileID: 8300000, guid: 9ee29d6493f3f6a409e7306fd1fcb3df, type: 3}
+  deathSound: {fileID: 8300000, guid: f602c1fb2bcf9ae49b62bd29d65c4a60, type: 3}
+  stunSound: {fileID: 8300000, guid: b5705cc09c87536488d118dc3f891a95, type: 3}
   raycastOffset: {x: 0, y: 0}
   enemyHitbox: {fileID: 4377330276286073632}
 --- !u!95 &3959985999966288405
@@ -253,6 +259,69 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
+--- !u!114 &3057274197778571174
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2152070070159787113}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7db70e0ea77f5ac47a8f4565a9406397, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.2D.Runtime::UnityEngine.Rendering.Universal.ShadowCaster2D
+  m_ShadowGroup: 0
+  m_Priority: 2
+  m_ComponentVersion: 5
+  m_HasRenderer: 1
+  m_UseRendererSilhouette: 1
+  m_CastsShadows: 1
+  m_SelfShadows: 0
+  m_AlphaCutoff: 0.1
+  m_ApplyToSortingLayers: 00000000
+  m_ShapePath:
+  - {x: -0.051004805, y: -0.12533621, z: 0}
+  - {x: -0.09235956, y: -0.14856216, z: 0}
+  - {x: -0.13833664, y: -0.1483696, z: 0}
+  - {x: -0.09490001, y: -0.13920109, z: 0}
+  - {x: -0.061304696, y: -0.10715687, z: 0}
+  - {x: -0.096993, y: -0.0762329, z: 0}
+  - {x: -0.15894735, y: -0.110883944, z: 0}
+  - {x: -0.124169745, y: -0.08217323, z: 0}
+  - {x: -0.08833878, y: -0.07096736, z: 0}
+  - {x: -0.06488335, y: -0.0562327, z: 0}
+  - {x: -0.041736446, y: -0.037378613, z: 0}
+  - {x: 0.031746905, y: -0.038234558, z: 0}
+  - {x: 0.07005913, y: -0.06900342, z: 0}
+  - {x: 0.13460444, y: -0.098456986, z: 0}
+  - {x: 0.110024095, y: -0.12715928, z: 0}
+  m_ShapePathHash: -1621317420
+  m_InstanceId: 0
+  m_ShadowShape2DComponent: {fileID: 0}
+  m_ShadowShape2DProvider:
+    rid: -2
+  m_ShadowCastingSource: 1
+  m_ShadowMesh:
+    m_Mesh: {fileID: 0}
+    m_LocalBounds:
+      m_Center: {x: -0.012171447, y: -0.092970386, z: 0}
+      m_Extent: {x: 0.1467759, y: 0.055591777, z: 0}
+    m_EdgeProcessing: 1
+    m_TrimEdge: 0.04
+    m_FlipX: 0
+    m_FlipY: 0
+    m_InitialTrim: 0
+  m_CastingOption: 1
+  m_PreviousTrimEdge: 0.04
+  m_PreviousEdgeProcessing: 1
+  m_PreviousShadowCastingSource: 1
+  m_PreviousShadowShape2DSource: {fileID: 3135376402067373484}
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
 --- !u!1 &4377330276286073632
 GameObject:
   m_ObjectHideFlags: 0
@@ -405,7 +474,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHitbox
   damage: 2
-  hitSparkPrefab: {fileID: 0}
+  hitSparkPrefab: {fileID: 3726125514428263259, guid: 42e6cca92f80793498b05d141002e2cb, type: 3}
 --- !u!1001 &7492645476540336351
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -417,6 +486,10 @@ PrefabInstance:
     - target: {fileID: -2253911629886400664, guid: bfe0545f4906ba344a34f5d6745be008, type: 3}
       propertyPath: m_Name
       value: Stun_wink_01
+      objectReference: {fileID: 0}
+    - target: {fileID: -2253911629886400664, guid: bfe0545f4906ba344a34f5d6745be008, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3626916397498700004, guid: bfe0545f4906ba344a34f5d6745be008, type: 3}
       propertyPath: m_SortingOrder

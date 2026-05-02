@@ -185,6 +185,9 @@ MonoBehaviour:
   embedDepth: 0.5
   throwDamage: 2
   stunDuration: 1
+  hitEnemySound: {fileID: 8300000, guid: aaf84015b15fb0a4285e41a4ba547221, type: 3}
+  stickWallSound: {fileID: 8300000, guid: dc28abc853e715846bd14ad20cacedf5, type: 3}
+  bounceSound: {fileID: 8300000, guid: e2d70dbb86fc1c644ad81706ebf6e107, type: 3}
 --- !u!114 &5434617740629147790
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -215,7 +218,7 @@ MonoBehaviour:
   m_InstanceId: 0
   m_ShadowShape2DComponent: {fileID: 5002591373436885289}
   m_ShadowShape2DProvider:
-    rid: 1204823516452749596
+    rid: 1204823538504826972
   m_ShadowCastingSource: 2
   m_ShadowMesh:
     m_Mesh: {fileID: 0}
@@ -227,7 +230,7 @@ MonoBehaviour:
     m_FlipX: 0
     m_FlipY: 0
     m_InitialTrim: 0.02
-  m_CastingOption: 1
+  m_CastingOption: 2
   m_PreviousTrimEdge: 0
   m_PreviousEdgeProcessing: 1
   m_PreviousShadowCastingSource: 2
@@ -235,6 +238,6 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 1204823516452749596
+    - rid: 1204823538504826972
       type: {class: ShadowShape2DProvider_SpriteRenderer, ns: UnityEngine.Rendering.Universal, asm: Unity.RenderPipelines.Universal.2D.Runtime}
       data: 

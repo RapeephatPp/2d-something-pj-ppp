@@ -1,14 +1,16 @@
 using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine.Rendering.Universal; 
 
-[RequireComponent(typeof(LineRenderer))]
+// 🟢 เพิ่ม typeof(AudioSource) เข้าไป เพื่อให้ Unity สร้างตัวเล่นเสียงให้อัตโนมัติ
+[RequireComponent(typeof(LineRenderer), typeof(AudioSource))]
 public class LaserTrap : MonoBehaviour
 {
     public enum LaserType 
     { 
-        Normal,             // ปกติ (ดาบปักได้, คนพุ่งหลบได้) -> 🔴 สีแดง
-        SwordPassable,      // กรองแสง (ดาบทะลุได้, คนพุ่งหลบได้) -> 🟠 สีส้ม
-        AbsoluteBarrier     // สังหาร (ดาบทะลุได้, คนห้ามผ่านเด็ดขาด) -> 🟣 สีม่วง
+        Normal,             
+        SwordPassable,      
+        AbsoluteBarrier     
     }
 
     public enum LaserDirection { Right, Left, Up, Down, CustomWorld, CustomLocal }
@@ -16,7 +18,6 @@ public class LaserTrap : MonoBehaviour
     [Header("Laser Core Settings")]
     public LaserType laserType = LaserType.Normal; 
     public LaserDirection shootDirection = LaserDirection.Right;
-    [Tooltip("ใช้เฉพาะตอนเลือกโหมด Custom")]
     public Vector2 customDirection = Vector2.right; 
     public float maxDistance = 20f;
     public LayerMask hitLayers;
@@ -32,8 +33,8 @@ public class LaserTrap : MonoBehaviour
     public int sortingOrder = 20;               
 
     [Header("Game Feel (Juice)")]
-    // 🟢 ซ่อนการตั้งค่าสีไว้ เพราะเดี๋ยวโค้ดจะจัดการให้เอง!
     [HideInInspector] public Color laserColor = Color.red;
+    public float glowIntensity = 3.5f;
     public float baseWidth = 0.15f;
     public float pulseAmplitude = 0.05f;
     public float pulseSpeed = 15f;
@@ -43,14 +44,19 @@ public class LaserTrap : MonoBehaviour
     public bool isBlinking = false;
     public float timeOn = 2f;
     public float timeOff = 2f;
+    
+    [Header("Audio SFX")]
+    public AudioClip laserHumSound; // 🟢 ไฟล์เสียงเลเซอร์ครางสั้นๆ ที่เอามาวนลูป
 
     private LineRenderer lr;
     private float nextDamageTime = 0f;
     private bool isLaserActive;
     private float blinkTimer = 0f;
     private GameObject currentSpark;
+    
+    private AudioSource audioSource;    // 🟢 ลำโพงส่วนตัวของเลเซอร์
+    private bool wasLaserActive;        // 🟢 เอาไว้จำว่าเฟรมที่แล้วเลเซอร์ติดอยู่ไหม
 
-    // 🟢 ระบบเปลี่ยนสีให้ดูทันทีในหน้าจอ Unity (ไม่ต้องกด Play)
     private void OnValidate()
     {
         UpdateLaserColor();
@@ -65,25 +71,30 @@ public class LaserTrap : MonoBehaviour
             case LaserType.AbsoluteBarrier: laserColor = new Color(0.7f, 0f, 1f); break; 
         }
         
+        Color hdrColor = new Color(laserColor.r * glowIntensity, laserColor.g * glowIntensity, laserColor.b * glowIntensity, laserColor.a);
+
         if (lr == null) lr = GetComponent<LineRenderer>();
         if (lr != null)
         {
-            lr.startColor = laserColor;
-            lr.endColor = laserColor;
+            lr.startColor = hdrColor;
+            lr.endColor = hdrColor;
         }
 
-        // 🟢 เปลี่ยนสีและ "ขนาด" ของ Spark ให้ตรงกับเลเซอร์
         if (currentSpark != null)
         {
             SpriteRenderer sparkSr = currentSpark.GetComponent<SpriteRenderer>();
-            if (sparkSr != null) sparkSr.color = laserColor;
+            if (sparkSr != null) sparkSr.color = hdrColor; 
 
-            // ส่งค่าไปบอก HitSparkJuice
+            UnityEngine.Rendering.Universal.Light2D sparkLight = currentSpark.GetComponent<UnityEngine.Rendering.Universal.Light2D>();
+            if (sparkLight != null) 
+            {
+                sparkLight.color = laserColor; 
+                sparkLight.intensity = glowIntensity; 
+            }
+
             HitSparkJuice sparkJuice = currentSpark.GetComponent<HitSparkJuice>();
             if (sparkJuice != null)
             {
-                // นำ baseWidth มาหารด้วย 0.15 (ซึ่งเป็นค่าความกว้างมาตรฐาน)
-                // ถ้าเลเซอร์หนา 0.30 Spark ก็จะใหญ่ขึ้นเป็น 2 เท่าทันที!
                 sparkJuice.externalScaleMultiplier = baseWidth / 0.15f; 
             }
         }
@@ -92,15 +103,19 @@ public class LaserTrap : MonoBehaviour
     void Start()
     {
         lr = GetComponent<LineRenderer>();
+        
+        // 🟢 ตั้งค่าเครื่องเล่นเสียงให้วนลูป
+        audioSource = GetComponent<AudioSource>();
+        audioSource.loop = true;          
+        audioSource.playOnAwake = false;  
 
-        // 🟢 1. สร้าง Spark ขึ้นมาก่อน (ต้องทำก่อน UpdateLaserColor)
         if (hitSparkPrefab != null)
         {
             currentSpark = Instantiate(hitSparkPrefab, transform.position, Quaternion.identity);
+            currentSpark.transform.SetParent(this.transform);
             currentSpark.SetActive(false);
         }
 
-        // 🟢 2. เรียกใช้การตั้งค่าสี (มันจะไปเปลี่ยนสี Spark ที่เพิ่งเสกมาให้ด้วย)
         UpdateLaserColor(); 
         
         lr.positionCount = 2;
@@ -112,12 +127,29 @@ public class LaserTrap : MonoBehaviour
             lr.material = new Material(Shader.Find("Sprites/Default"));
 
         isLaserActive = startActive;
+        wasLaserActive = !isLaserActive; // หลอกสคริปต์ให้มันเช็คอัปเดตเสียงตั้งแต่เฟรมแรก
         blinkTimer = timeOn;
     }
 
     void Update()
     {
         HandleBlinking();
+
+        // 🟢 เช็คว่ามีการ "เปลี่ยนสถานะ" เลเซอร์หรือเปล่า จะได้เปิด/ปิดเสียงถูกจังหวะ
+        if (isLaserActive && !wasLaserActive)
+        {
+            if (laserHumSound != null)
+            {
+                audioSource.clip = laserHumSound;
+                audioSource.Play();
+            }
+        }
+        else if (!isLaserActive && wasLaserActive)
+        {
+            audioSource.Stop(); // เลเซอร์ดับ สั่งตัดเสียงฉับเลย!
+        }
+        
+        wasLaserActive = isLaserActive; // อัปเดตความจำไว้ใช้เฟรมต่อไป
 
         if (isLaserActive)
         {
@@ -129,6 +161,21 @@ public class LaserTrap : MonoBehaviour
         {
             lr.enabled = false;
             if (currentSpark != null) currentSpark.SetActive(false);
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (currentSpark != null)
+        {
+            currentSpark.SetActive(false);
+        }
+        
+        // 🟢 ถ้าโดน Culler สั่งปิด Object ไป ต้องรีบดับเสียงด้วย ไม่งั้นเสียงจะค้าง!
+        if (audioSource != null)
+        {
+            audioSource.Stop();
+            wasLaserActive = false;
         }
     }
 
@@ -198,23 +245,17 @@ public class LaserTrap : MonoBehaviour
                     
                     if ((!pc.isInvincible || bypass) && !pc.isDead) 
                     {
-                        // 🟢 1. คำนวณทิศทางผลักออก "ซ้าย หรือ ขวา" จากจุดที่โดนเลเซอร์
                         float pushDirX = Mathf.Sign(pc.transform.position.x - actualHit.point.x);
-                        
-                        // ถ้าเดินชนตรงกลางเป๊ะๆ (0) ให้เด้งสวนทางกับหน้าที่หันอยู่
                         if (Mathf.Abs(pc.transform.position.x - actualHit.point.x) < 0.05f) 
                         {
                             pushDirX = -Mathf.Sign(pc.transform.localScale.x); 
                         }
                         
-                        // สร้างแรงกระเด็นเฉียงขึ้นฟ้าเล็กน้อย (X, Y)
                         Vector2 knockbackDir = new Vector2(pushDirX, 0.7f).normalized; 
 
-                        // 🟢 2. ทำดาเมจ
                         pc.TakeDamage(damage, bypass);
                         nextDamageTime = Time.time + damageTickRate;
                         
-                        // 🟢 3. เรียกใช้ระบบกระเด็นใหม่! (กระเด็นเป็นเวลา 0.25 วินาที)
                         if (!pc.isDead) 
                         {
                             pc.ApplyKnockback(knockbackDir * knockbackForce, 0.25f); 
@@ -241,6 +282,11 @@ public class LaserTrap : MonoBehaviour
     }
 
     public void TurnOnLaser() { isLaserActive = true; }
-    public void TurnOffLaser() { isLaserActive = false; }
+    public void TurnOffLaser() 
+    { 
+        isLaserActive = false; 
+        isBlinking = false; 
+        if (currentSpark != null) currentSpark.SetActive(false);
+    }
     public void ToggleLaser() { isLaserActive = !isLaserActive; }
 }

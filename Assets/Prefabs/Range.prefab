@@ -234,6 +234,11 @@ MonoBehaviour:
   waitToChase: 0
   separationRadius: 0.8
   separationForce: 1.5
+  alertSound: {fileID: 8300000, guid: e02dfadef90b4a5438f78b2b94e32e5c, type: 3}
+  attackSound: {fileID: 8300000, guid: fc4282cad7bffa143a8ff0507939b2d3, type: 3}
+  hurtSound: {fileID: 8300000, guid: 9ee29d6493f3f6a409e7306fd1fcb3df, type: 3}
+  deathSound: {fileID: 8300000, guid: 987661c7f513e654faf357fa1186c61a, type: 3}
+  stunSound: {fileID: 8300000, guid: b5705cc09c87536488d118dc3f891a95, type: 3}
   raycastOffset: {x: 0, y: -0.77}
   enemyHitbox: {fileID: 0}
 --- !u!50 &544852607593978003

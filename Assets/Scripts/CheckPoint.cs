@@ -6,6 +6,9 @@ public class Checkpoint : MonoBehaviour
     public KeyCode interactKey = KeyCode.E;
     public Color activeColor = Color.yellow; 
     
+    [Header("Audio SFX")]
+    public AudioClip saveSound; // 🟢 เสียงตอนกดเซฟ (กังวานๆ สบายใจ)
+
     private bool isPlayerNear = false;
     private bool isActive = false;
     private SpriteRenderer sr;
@@ -17,7 +20,6 @@ public class Checkpoint : MonoBehaviour
 
     void Update()
     {
-        // 🟢 เพิ่มเช็คว่า ต้องยังไม่เคยถูกเปิด (!isActive) ถึงจะกด E ได้
         if (isPlayerNear && !isActive && Input.GetKeyDown(interactKey))
         {
             ActivateCheckpoint();
@@ -26,7 +28,13 @@ public class Checkpoint : MonoBehaviour
 
     void ActivateCheckpoint()
     {
-        if (isActive) return; // ป้องกันการทำงานซ้ำ
+        if (isActive) return; 
+
+        // 🟢 เล่นเสียงเซฟเกม!
+        if (AudioManager.Instance != null && saveSound != null)
+        {
+            AudioManager.Instance.PlaySFX(saveSound, 1.0f);
+        }
 
         // 1. บันทึกข้อมูล
         CharacterSwitcher.currentCheckpointPosition = transform.position;
@@ -51,13 +59,12 @@ public class Checkpoint : MonoBehaviour
         if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.2f, 0.1f);
         Debug.Log("Checkpoint Saved!");
 
-        // 🟢 ใช้งานเสร็จ สั่งทำลายป้าย E ทิ้ง!
         DisablePrompt();
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (isActive) return; // 🟢 ถ้าจุดเซฟถูกเปิดไปแล้ว ไม่ต้องสนใจใครเดินมาใกล้อีก
+        if (isActive) return; 
         if (collision.CompareTag("Player")) isPlayerNear = true;
     }
 
@@ -66,13 +73,11 @@ public class Checkpoint : MonoBehaviour
         if (collision.CompareTag("Player")) isPlayerNear = false;
     }
 
-    // 🟢 ฟังก์ชันสำหรับลบทิ้งป้ายแจ้งเตือน
     private void DisablePrompt()
     {
         InteractPrompt prompt = GetComponent<InteractPrompt>();
         if (prompt != null)
         {
-            // ทำลายรูปป้าย E และทำลายสคริปต์ทิ้ง
             if (prompt.promptVisual != null) Destroy(prompt.promptVisual);
             Destroy(prompt);
         }

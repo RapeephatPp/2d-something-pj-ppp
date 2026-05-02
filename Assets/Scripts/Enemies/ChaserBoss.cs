@@ -15,6 +15,13 @@ public class ChaserBoss : MonoBehaviour
     private bool isDead = false;
     private bool isStunned = false;
     private Rigidbody2D rb;
+    
+    [Header("Audio SFX")]
+    public AudioClip hitByRockSound; // 🟢 เสียงก้อนหินบดขยี้บอส
+    public AudioClip deflectSound;   // 🟢 เสียงผู้เล่นฟันบอสไม่เข้า (เคร้ง!)
+    public AudioClip stunRoarSound;  // 🟢 เสียงคำรามของบอสตอนโดนทับ
+    public AudioClip eatPlayerSound; // 🟢 เสียงบอสงับผู้เล่น (สยองๆ)
+    public AudioClip deathSound;     // 🟢 เสียงบอสตาย
 
     void Start()
     {
@@ -67,14 +74,17 @@ public class ChaserBoss : MonoBehaviour
         {
             StartCoroutine(HitStopAndStun());
             
-            // --- GAME FEEL: สั่นกล้องรุนแรง! ---
-            if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(6f, 0.1f);
+            // 🟢 โดนหินทับ: เสียงหินกระแทก + เสียงบอสคำรามเจ็บปวด
+            AudioManager.Instance.PlaySFX(hitByRockSound, 1.2f);
+            AudioManager.Instance.PlaySFX(stunRoarSound, 1.5f);
             
-            // TODO: ใส่เอฟเฟกต์ BloodFadeEffect เลือดสาดตรงนี้
+            if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(6f, 0.1f);
         }
-        else // โดนดาบปาใส่ตรงๆ
+        else // โดนดาบปาใส่ตรงๆ (ปัดป้อง)
         {
-            // สั่นกล้องเบาๆ เหมือนตีไม่เข้า
+            // 🟢 เสียงตีไม่เข้า (เหล็กกระทบหิน/เกราะ)
+            AudioManager.Instance.PlaySFX(deflectSound, 1.0f);
+            
             if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.15f, 0.1f);
         }
 
@@ -101,7 +111,9 @@ public class ChaserBoss : MonoBehaviour
     void DevourPlayer(GameObject player)
     {
         if (isDead || isStunned) return;
-
+        
+        AudioManager.Instance.PlaySFX(eatPlayerSound, 1.5f);
+        
         // --- ฉากจบสายดาร์ก ---
         Debug.Log("Game Over: บอสงับผู้เล่นแล้ว!");
         player.SetActive(false); // ปิดผู้เล่นไปเลย
@@ -112,7 +124,9 @@ public class ChaserBoss : MonoBehaviour
     void Die()
     {
         isDead = true;
-        // --- GAME FEEL: บอสตาย ---
+        
+        AudioManager.Instance.PlaySFX(deathSound, 1.5f);
+        
         if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(10f, 0.5f);
         Debug.Log("Boss Defeated! ทางเปิดออก!");
         

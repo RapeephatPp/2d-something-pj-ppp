@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 5524119832253765136}
   - component: {fileID: 7354613661804187087}
   - component: {fileID: 3807444563778981812}
+  - component: {fileID: 3840221824416651787}
   m_Layer: 9
   m_Name: SlidingDoor_L
   m_TagString: Untagged
@@ -174,7 +175,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: -0.011856437, y: -0.1809327}
+  m_Offset: {x: -0.011856437, y: -0.34379715}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
@@ -184,7 +185,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.6989318, y: 0.913931}
+  m_Size: {x: 0.6989318, y: 1.2396601}
   m_EdgeRadius: 0
 --- !u!114 &3807444563778981812
 MonoBehaviour:
@@ -202,3 +203,57 @@ MonoBehaviour:
   openHeight: 3
   slideSpeed: 5
   startOpen: 0
+  openSound: {fileID: 8300000, guid: cac2da2419c0f664b962bf31089ee080, type: 3}
+  closeSound: {fileID: 8300000, guid: 0b6bff9b1035ea7489cdb8dd00e3d4b8, type: 3}
+--- !u!114 &3840221824416651787
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 23272326824053323}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7db70e0ea77f5ac47a8f4565a9406397, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.2D.Runtime::UnityEngine.Rendering.Universal.ShadowCaster2D
+  m_ShadowGroup: 0
+  m_Priority: 0
+  m_ComponentVersion: 5
+  m_HasRenderer: 1
+  m_UseRendererSilhouette: 1
+  m_CastsShadows: 1
+  m_SelfShadows: 0
+  m_AlphaCutoff: 0.1
+  m_ApplyToSortingLayers: 00000000
+  m_ShapePath:
+  - {x: -0.06933629, y: -0.2796463, z: 0}
+  - {x: -0.07229086, y: 0.15969312, z: 0}
+  - {x: 0.07, y: 0.275, z: 0}
+  - {x: 0.07, y: -0.155524, z: 0}
+  m_ShapePathHash: 804355693
+  m_InstanceId: 0
+  m_ShadowShape2DComponent: {fileID: 0}
+  m_ShadowShape2DProvider:
+    rid: -2
+  m_ShadowCastingSource: 1
+  m_ShadowMesh:
+    m_Mesh: {fileID: 0}
+    m_LocalBounds:
+      m_Center: {x: -0.0011454299, y: -0.0023231506, z: 0}
+      m_Extent: {x: 0.07114543, y: 0.27732316, z: 0}
+    m_EdgeProcessing: 1
+    m_TrimEdge: 0.03
+    m_FlipX: 0
+    m_FlipY: 0
+    m_InitialTrim: 0
+  m_CastingOption: 2
+  m_PreviousTrimEdge: 0.03
+  m_PreviousEdgeProcessing: 1
+  m_PreviousShadowCastingSource: 1
+  m_PreviousShadowShape2DSource: {fileID: 6274495359040079730}
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }

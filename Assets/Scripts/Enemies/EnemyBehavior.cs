@@ -132,6 +132,13 @@ public class EnemyBehavior : MonoBehaviour
     public float separationRadius = 0.8f; 
     public float separationForce = 1.5f;  
     
+    [Header("Audio SFX")]
+    public AudioClip alertSound;   // 🟢 เสียงตกใจตอนเจอผู้เล่น (เครื่องหมายตกใจขึ้น)
+    public AudioClip attackSound;  // 🟢 เสียงโจมตี (ฟัน/ยิงปืน/โดรนยิง)
+    public AudioClip hurtSound;    // 🟢 เสียงร้องตอนโดนฟัน
+    public AudioClip deathSound;   // 🟢 เสียงตาย (ระเบิดเลือด)
+    public AudioClip stunSound;    // 🟢 เสียงมึนงง (ตอนโดนผู้เล่นปาดาบอัดหน้า)
+    
     [Header("Raycast Tuning")]
     [Tooltip("ปรับจุดกำเนิดเลเซอร์ให้ยื่นออกจากตัว ป้องกันการยิงติด Collider ตัวเอง (X: แนวนอน, Y: แนวตั้ง)")]
     public Vector2 raycastOffset = Vector2.zero; 
@@ -416,6 +423,9 @@ public class EnemyBehavior : MonoBehaviour
             isChatting = false; 
             currentFleeDirection = Mathf.Sign(transform.position.x - player.position.x);
             if (currentFleeDirection == 0) currentFleeDirection = 1f;
+            
+            AudioManager.Instance.PlaySFX(alertSound, 0.8f);
+            
             StartCoroutine(ShowAlertIcon());
         }
 
@@ -592,6 +602,8 @@ public class EnemyBehavior : MonoBehaviour
 
         isPreparingMelee = false;
         isLunging = true;
+        
+        AudioManager.Instance.PlaySFX(attackSound, 0.3f);
         
         if (animator != null) animator.SetTrigger("Attack");
 
@@ -778,7 +790,9 @@ public class EnemyBehavior : MonoBehaviour
     }
 
     void Shoot()
-    {
+    {   
+        AudioManager.Instance.PlaySFX(attackSound, 1.0f);
+        
         if (projectilePrefab != null)
         {
             Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position;
@@ -803,6 +817,8 @@ public class EnemyBehavior : MonoBehaviour
         if (type == EnemyType.BigChaser) return;
 
         currentHealth -= damageAmount;
+        
+        AudioManager.Instance.PlaySFX(hurtSound, 0.6f);
 
         if (type == EnemyType.MeleeHostile)
         {
@@ -837,6 +853,8 @@ public class EnemyBehavior : MonoBehaviour
     IEnumerator SwordStunRoutine(float duration)
     {
         isSwordStunned = true;
+        
+        AudioManager.Instance.PlaySFX(stunSound, 1.0f);
         
         // ยกเลิกสถานะการโจมตี/เดิน อื่นๆ ทั้งหมด
         isRetreating = false; 
@@ -912,7 +930,9 @@ public class EnemyBehavior : MonoBehaviour
     }
 
     void Die()
-    {
+    {   
+        AudioManager.Instance.PlaySFX(deathSound, 1.2f);
+        
         if (bloodPrefab != null)
         {
             Vector3 centerPosition = transform.position + new Vector3(0, bloodHeightOffset, 0);

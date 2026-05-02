@@ -154,7 +154,7 @@ MonoBehaviour:
   damage: 1
   hitStopDuration: 0.1
   camShakeMagnitude: 0.2
-  hitSparkPrefab: {fileID: 0}
+  hitSparkPrefab: {fileID: 3726125514428263259, guid: 42e6cca92f80793498b05d141002e2cb, type: 3}
   canDeflectProjectiles: 1
 --- !u!1 &1281235893630379350
 GameObject:
@@ -341,7 +341,7 @@ MonoBehaviour:
   damage: 1
   hitStopDuration: 0.1
   camShakeMagnitude: 0.2
-  hitSparkPrefab: {fileID: 0}
+  hitSparkPrefab: {fileID: 3726125514428263259, guid: 42e6cca92f80793498b05d141002e2cb, type: 3}
   canDeflectProjectiles: 1
 --- !u!1 &2773387024033540269
 GameObject:
@@ -497,7 +497,7 @@ MonoBehaviour:
   damage: 1
   hitStopDuration: 0.1
   camShakeMagnitude: 0.2
-  hitSparkPrefab: {fileID: 0}
+  hitSparkPrefab: {fileID: 3726125514428263259, guid: 42e6cca92f80793498b05d141002e2cb, type: 3}
   canDeflectProjectiles: 1
 --- !u!1 &3337109714129316891
 GameObject:
@@ -715,7 +715,7 @@ MonoBehaviour:
   damage: 1
   hitStopDuration: 0.1
   camShakeMagnitude: 0.2
-  hitSparkPrefab: {fileID: 0}
+  hitSparkPrefab: {fileID: 3726125514428263259, guid: 42e6cca92f80793498b05d141002e2cb, type: 3}
   canDeflectProjectiles: 1
 --- !u!1 &7386662849734993561
 GameObject:
@@ -903,6 +903,21 @@ MonoBehaviour:
   maxBloodSpawns: 20
   bloodSpread: 1.5
   droppedSwordPrefab: {fileID: 2296640474114385898, guid: eadb101c904b257459d75a28e4bef724, type: 3}
+  jumpSound: {fileID: 8300000, guid: f3e59affb14d7344ab9c639ee73a82b0, type: 3}
+  attack1Sound: {fileID: 8300000, guid: 9242c91c4e8d08a45b81a91eedd8968d, type: 3}
+  attack2Sound: {fileID: 8300000, guid: 60743555014829947ad143e83ad5d75f, type: 3}
+  attack3Sound: {fileID: 8300000, guid: fdb99c3ce9c4b6744ad73f0118224f00, type: 3}
+  dashSound: {fileID: 8300000, guid: ec85bdabed2d830489d528965310738a, type: 3}
+  hurtSound: {fileID: 8300000, guid: 50cc5bb5ab60094408c678b199d3cc0b, type: 3}
+  deathSound: {fileID: 8300000, guid: 987661c7f513e654faf357fa1186c61a, type: 3}
+  blockSound: {fileID: 8300000, guid: 73c24262edc6e0d4b88f17d26eae152c, type: 3}
+  armorBreakSound: {fileID: 8300000, guid: c209dc1211e086c4d92984b0092e47e6, type: 3}
+  doubleJumpSound: {fileID: 8300000, guid: 5811546a482982b4280aa7f75aca3f87, type: 3}
+  throwSwordSound: {fileID: 8300000, guid: 74079d013eac376488b93728e1817935, type: 3}
+  catchSwordSound: {fileID: 8300000, guid: 4ecdf6b4cb819384ab452425329882dc, type: 3}
+  targetDashSound: {fileID: 8300000, guid: 7a302f1965d750d459071d97019a5fd0, type: 3}
+  landSound: {fileID: 8300000, guid: dc28abc853e715846bd14ad20cacedf5, type: 3}
+  footstepSound: {fileID: 8300000, guid: 5c6668a8208329f4aaad5251acf984dd, type: 3}
 --- !u!61 &8844600889642850822
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -1076,7 +1091,7 @@ MonoBehaviour:
     m_TrimEdge: 0
     m_FlipX: 0
     m_FlipY: 0
-    m_InitialTrim: 0.08
+    m_InitialTrim: 0
   m_CastingOption: 1
   m_PreviousTrimEdge: 0
   m_PreviousEdgeProcessing: 1

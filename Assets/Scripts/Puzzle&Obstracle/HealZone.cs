@@ -7,55 +7,59 @@ public class HealZone : MonoBehaviour
     public KeyCode interactKey = KeyCode.E;
 
     [Header("Cooldown Settings")]
-    public float cooldownDuration = 20f; // 🟢 ตั้งค่าคูลดาวน์ (เช่น 20 วินาที)
-    private float nextHealTime = 0f;      // ตัวเก็บเวลาที่จะใช้ได้ครั้งต่อไป
+    public float cooldownDuration = 20f; 
+    private float nextHealTime = 0f;      
 
     [Header("Visual Feedback")]
-    public Color readyColor = Color.green;    // สีตอนพร้อมใช้
-    public Color cooldownColor = Color.gray;   // สีตอนติดคูลดาวน์
-    private SpriteRenderer sr;
+    public Color readyColor = Color.green;    
+    public Color cooldownColor = Color.gray;   
+    
+    [Header("Audio SFX")]
+    public AudioClip healSound;  // 🟢 เสียงตอนฮีลสำเร็จ (วิ้งๆ ฟื้นฟู)
+    public AudioClip errorSound; // 🟢 เสียงกดตอนแท่นกำลังชาร์จ (ติ๊ด! ปฏิเสธ)
 
+    private SpriteRenderer sr;
     private bool isPlayerNear = false;
     private PlayerController playerInZone;
 
     void Start()
     {
         sr = GetComponent<SpriteRenderer>();
-        // เริ่มเกมมาให้เป็นสีพร้อมใช้งาน
         if (sr != null) sr.color = readyColor;
     }
 
     void Update()
     {
-        // 1. เช็คว่าปัจจุบัน "พร้อมใช้งาน" หรือยัง
         bool isReady = Time.time >= nextHealTime;
 
-        // 2. ปรับสีตัวเครื่องตามสถานะคูลดาวน์
         if (sr != null)
         {
             sr.color = isReady ? readyColor : cooldownColor;
         }
 
-        // 3. ตรวจสอบการกดใช้งาน
         if (isPlayerNear && Input.GetKeyDown(interactKey))
         {
             if (isReady)
             {
                 if (playerInZone != null)
                 {
-                    // ทำการฮีล
                     playerInZone.Heal(healAmount);
-                    
-                    // 🟢 เซ็ตเวลาคูลดาวน์ครั้งต่อไป
                     nextHealTime = Time.time + cooldownDuration;
+                    
+                    // 🟢 เล่นเสียงฮีล
+                    if (AudioManager.Instance != null && healSound != null)
+                        AudioManager.Instance.PlaySFX(healSound, 1.0f);
 
-                    // เพิ่มเอฟเฟกต์สั่นกล้องเบาๆ ให้รู้ว่าฮีลแล้ว
                     if (CameraShake.Instance != null)
                         CameraShake.Instance.StartManagedShake(0.1f, 0.05f);
                 }
             }
             else
             {
+                // 🟢 เล่นเสียง Error แจ้งเตือนว่าติดคูลดาวน์
+                if (AudioManager.Instance != null && errorSound != null)
+                    AudioManager.Instance.PlaySFX(errorSound, 0.5f);
+                    
                 Debug.Log("จุดฮีลกำลังชาร์จพลัง... รออีก " + (nextHealTime - Time.time).ToString("F1") + " วินาที");
             }
         }

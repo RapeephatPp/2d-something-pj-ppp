@@ -335,6 +335,21 @@ MonoBehaviour:
   maxBloodSpawns: 20
   bloodSpread: 1.5
   droppedSwordPrefab: {fileID: 0}
+  jumpSound: {fileID: 8300000, guid: f3e59affb14d7344ab9c639ee73a82b0, type: 3}
+  attack1Sound: {fileID: 0}
+  attack2Sound: {fileID: 0}
+  attack3Sound: {fileID: 0}
+  dashSound: {fileID: 8300000, guid: ec85bdabed2d830489d528965310738a, type: 3}
+  hurtSound: {fileID: 8300000, guid: 50cc5bb5ab60094408c678b199d3cc0b, type: 3}
+  deathSound: {fileID: 8300000, guid: 987661c7f513e654faf357fa1186c61a, type: 3}
+  blockSound: {fileID: 8300000, guid: 73c24262edc6e0d4b88f17d26eae152c, type: 3}
+  armorBreakSound: {fileID: 8300000, guid: c209dc1211e086c4d92984b0092e47e6, type: 3}
+  doubleJumpSound: {fileID: 8300000, guid: 5811546a482982b4280aa7f75aca3f87, type: 3}
+  throwSwordSound: {fileID: 8300000, guid: 74079d013eac376488b93728e1817935, type: 3}
+  catchSwordSound: {fileID: 8300000, guid: 4ecdf6b4cb819384ab452425329882dc, type: 3}
+  targetDashSound: {fileID: 8300000, guid: 7a302f1965d750d459071d97019a5fd0, type: 3}
+  landSound: {fileID: 8300000, guid: dc28abc853e715846bd14ad20cacedf5, type: 3}
+  footstepSound: {fileID: 8300000, guid: 5c6668a8208329f4aaad5251acf984dd, type: 3}
 --- !u!61 &5373598469833144271
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -541,14 +556,14 @@ MonoBehaviour:
     m_Mesh: {fileID: 0}
     m_LocalBounds:
       m_Center: {x: -0.04499817, y: -0.055000305, z: 0}
-      m_Extent: {x: 0.034988403, y: 0.13498688, z: 0}
+      m_Extent: {x: 0.06498718, y: 0.16498566, z: 0}
     m_EdgeProcessing: 1
-    m_TrimEdge: 0.03
+    m_TrimEdge: 0
     m_FlipX: 0
     m_FlipY: 0
-    m_InitialTrim: 0.03
+    m_InitialTrim: 0
   m_CastingOption: 1
-  m_PreviousTrimEdge: 0.03
+  m_PreviousTrimEdge: 0
   m_PreviousEdgeProcessing: 1
   m_PreviousShadowCastingSource: 2
   m_PreviousShadowShape2DSource: {fileID: 6555778821803527789}

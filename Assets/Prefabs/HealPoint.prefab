@@ -157,6 +157,8 @@ MonoBehaviour:
   cooldownDuration: 20
   readyColor: {r: 1, g: 1, b: 1, a: 1}
   cooldownColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  healSound: {fileID: 8300000, guid: 1e244aba1e328054cbdcebef9ac3d560, type: 3}
+  errorSound: {fileID: 8300000, guid: 2c66a4c8c699dc84c96a585f47cde1a1, type: 3}
 --- !u!114 &3660664576097651125
 MonoBehaviour:
   m_ObjectHideFlags: 0

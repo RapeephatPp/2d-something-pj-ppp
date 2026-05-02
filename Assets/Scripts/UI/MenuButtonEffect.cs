@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
-public class MenuButtonEffect : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, ISelectHandler, IDeselectHandler
+public class MenuButtonEffect : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, ISelectHandler, IDeselectHandler, IPointerClickHandler
 {
     [Header("Animation Settings")]
     public float moveDistance = 30f;     
@@ -12,6 +12,10 @@ public class MenuButtonEffect : MonoBehaviour, IPointerEnterHandler, IPointerExi
     [Header("Overlay/Border Settings")]
     [Tooltip("ลาก Object ที่เป็นขอบ หรือ กรอบเรืองแสง (ที่มี CanvasGroup) มาใส่ตรงนี้")]
     public CanvasGroup hoverOverlay; // 🟢 ตัวจัดการเฟดความใสของขอบ
+    
+    [Header("Audio SFX")]
+    public AudioClip hoverSound; // 🟢 เสียงกริ๊กเบาๆ ตอนเอาเมาส์วาง
+    public AudioClip clickSound; // 🟢 เสียงป้าบ ตอนกดคลิก
 
     private RectTransform rectTransform;
     private Vector3 originalPosition;
@@ -59,6 +63,10 @@ public class MenuButtonEffect : MonoBehaviour, IPointerEnterHandler, IPointerExi
             targetPosition = originalPosition + new Vector3(moveDistance, 0, 0);
             targetScale = originalScale * scaleMultiplier;
             targetAlpha = 1f; // 🟢 สั่งโชว์ขอบ (Fade In)
+            
+            if (AudioManager.Instance != null && hoverSound != null)
+                AudioManager.Instance.PlaySFX(hoverSound, 0.1f);
+            
         }
         else
         {
@@ -78,5 +86,15 @@ public class MenuButtonEffect : MonoBehaviour, IPointerEnterHandler, IPointerExi
         
         if (hoverOverlay != null) hoverOverlay.alpha = 0f;
         targetAlpha = 0f;
+    }
+    
+    // 🟢 ทำงานเมื่อผู้เล่นคลิกปุ่มนี้!
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (AudioManager.Instance != null && clickSound != null)
+        {
+            // 🟢 เสียงกดคลิก (ดังปกติ)
+            AudioManager.Instance.PlaySFX(clickSound, 1.0f);
+        }
     }
 }

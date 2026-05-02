@@ -514,7 +514,7 @@ ScriptedImporter:
     customData: 
     rect:
       serializedVersion: 2
-      x: 127
+      x: 50
       y: 62
       width: 66
       height: 29
@@ -556,8 +556,8 @@ ScriptedImporter:
     customData: 
     rect:
       serializedVersion: 2
-      x: 50
-      y: 62
+      x: 123
+      y: 60
       width: 69
       height: 31
     spriteID: 8914e7abbad34c84bb521c19a11fe7b8
@@ -632,10 +632,10 @@ ScriptedImporter:
       frameIndex: 5
       additiveSortOrder: 0
       cellRect:
-        x: 7
+        x: 8
         y: 13
-        width: 69
-        height: 31
+        width: 68
+        height: 27
       spriteId: 734fa33ee698ddd499e7bb0bbb9fa29c
     - name: Frame_6
       frameIndex: 6

@@ -188,6 +188,11 @@ MonoBehaviour:
   waitToChase: 0
   separationRadius: 0.8
   separationForce: 1.5
+  alertSound: {fileID: 8300000, guid: e02dfadef90b4a5438f78b2b94e32e5c, type: 3}
+  attackSound: {fileID: 8300000, guid: 31e81e95433796b4f84bcc3239544c51, type: 3}
+  hurtSound: {fileID: 8300000, guid: 9ee29d6493f3f6a409e7306fd1fcb3df, type: 3}
+  deathSound: {fileID: 8300000, guid: f602c1fb2bcf9ae49b62bd29d65c4a60, type: 3}
+  stunSound: {fileID: 8300000, guid: b5705cc09c87536488d118dc3f891a95, type: 3}
   raycastOffset: {x: 0, y: 0}
   enemyHitbox: {fileID: 0}
 --- !u!61 &5222881406764555031
@@ -321,14 +326,14 @@ MonoBehaviour:
     m_Mesh: {fileID: 0}
     m_LocalBounds:
       m_Center: {x: 0.020004272, y: 0.3299942, z: 0}
-      m_Extent: {x: 0.20698547, y: 0.09699249, z: 0}
+      m_Extent: {x: 0.20999146, y: 0.099998474, z: 0}
     m_EdgeProcessing: 1
-    m_TrimEdge: 0.003
+    m_TrimEdge: 0
     m_FlipX: 0
     m_FlipY: 0
     m_InitialTrim: 0.03
   m_CastingOption: 1
-  m_PreviousTrimEdge: 0.003
+  m_PreviousTrimEdge: 0
   m_PreviousEdgeProcessing: 1
   m_PreviousShadowCastingSource: 2
   m_PreviousShadowShape2DSource: {fileID: 1901962652336112819}

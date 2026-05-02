@@ -132,7 +132,28 @@ public class PlayerController : MonoBehaviour
     public int maxBloodSpawns = 20;     // สูงสุดหยดเลือด
     public float bloodSpread = 1.5f;    // รัศมีการกระจาย
     public GameObject droppedSwordPrefab; // 🟢 เพิ่มตัวแปรนี้สำหรับดาบที่จะกระเด็นออกมา
-
+    
+    [Header("Audio SFX")]
+    public AudioClip jumpSound;
+    public AudioClip attack1Sound;
+    public AudioClip attack2Sound;
+    public AudioClip attack3Sound;
+    public AudioClip dashSound;
+    public AudioClip hurtSound;
+    public AudioClip deathSound;   
+    public AudioClip blockSound;   
+    public AudioClip armorBreakSound; 
+    
+    [Header("Audio SFX (Extra)")]
+    public AudioClip doubleJumpSound; // เสียงกระโดดครั้งที่ 2 (ควรแหลมหรือกังวานกว่าครั้งแรก)
+    public AudioClip throwSwordSound; // เสียงปาดาบแหวกอากาศ (ฟิ้ว!)
+    public AudioClip catchSwordSound; // เสียงรับดาบเข้ามือ (ฉึบ!)
+    public AudioClip targetDashSound; // เสียงตอนกด F พุ่งเสียบศัตรู
+    public AudioClip landSound;       // เสียงเท้ากระแทกพื้นตอนร่วงลงมา
+    public AudioClip footstepSound;   // เสียงเดิน (แปะๆ)
+    
+    private bool wasGrounded = true;
+    
     private Camera mainCam; 
 
     private void Awake()
@@ -293,8 +314,16 @@ public class PlayerController : MonoBehaviour
     {
         // 🟢 ดึงข้อมูลของพื้นที่เราเหยียบอยู่มาเช็ค
         Collider2D hitCollider = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
-        isGrounded = hitCollider != null;
-
+        bool isGroundedNow = hitCollider != null;
+        
+        if (isGroundedNow && !wasGrounded && rb.linearVelocity.y <= 0f)
+        {
+            AudioManager.Instance.PlaySFX(landSound, 0.6f); // ดังปานกลาง
+        }
+        
+        isGrounded = isGroundedNow;
+        wasGrounded = isGrounded; // อัปเดตสถานะไว้ใช้เฟรมถัดไป
+        
         if (isGrounded)
         {
             coyoteTimeCounter = coyoteTime;
@@ -340,6 +369,7 @@ public class PlayerController : MonoBehaviour
         if (jumpBufferCounter > 0f && coyoteTimeCounter > 0f)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            AudioManager.Instance.PlaySFX(jumpSound, 0.5f);
             jumpBufferCounter = 0f;
             coyoteTimeCounter = 0f;
             canDoubleJump = true;
@@ -348,6 +378,9 @@ public class PlayerController : MonoBehaviour
         else if (Input.GetKeyDown(jumpKey) && canDoubleJump && !isGrounded)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            
+            AudioManager.Instance.PlaySFX(doubleJumpSound, 0.5f);
+            
             canDoubleJump = false;
             jumpBufferCounter = 0f;
             if (animator != null) animator.SetTrigger("Jump");
@@ -399,7 +432,8 @@ public class PlayerController : MonoBehaviour
     }
 
     private IEnumerator DashRoutine()
-    {
+    {   
+        AudioManager.Instance.PlaySFX(dashSound);
         isDashing = true;
         canDash = false; 
         isInvincible = true; 
@@ -548,6 +582,8 @@ public class PlayerController : MonoBehaviour
                 comboStep = 2; 
                 rb.linearVelocity = Vector2.zero; 
                 rb.gravityScale = 0f; 
+                
+                AudioManager.Instance.PlaySFX(attack2Sound, 0.9f);
             }
             else
             {
@@ -557,6 +593,19 @@ public class PlayerController : MonoBehaviour
                 // 🟢 สร้างแรงกระเถิบไปข้างหน้า (Micro-Lunge) ตอนฟันดาบ
                 float facingDir = Mathf.Sign(transform.localScale.x);
                 rb.linearVelocity = new Vector2(facingDir * 4f, rb.linearVelocity.y); // เปลี่ยนจากเบรค เป็นพุ่งไปข้างหน้าเบาๆ!
+                
+                if (comboStep == 1) 
+                {
+                    AudioManager.Instance.PlaySFX(attack1Sound, 0.8f); // ฟันเร็ว เสียงเบาหน่อย
+                }
+                else if (comboStep == 2) 
+                {
+                    AudioManager.Instance.PlaySFX(attack2Sound, 0.9f); // หนักขึ้นมานิดนึง
+                }
+                else if (comboStep == 3) 
+                {
+                    AudioManager.Instance.PlaySFX(attack3Sound, 1.2f); // ท่าจบ เอาให้ดังสะใจ!
+                }
             }
 
             if (animator != null)
@@ -637,10 +686,21 @@ public class PlayerController : MonoBehaviour
         }
     }
     
+    public void AnimEvent_PlayFootstep()
+    {
+        if (isGrounded) // ต้องอยู่บนพื้นเท่านั้นถึงจะมีเสียง
+        {
+            // ปรับเสียงเดินให้เบาหน่อย จะได้ไม่กวนเสียงสู้
+            AudioManager.Instance.PlaySFX(footstepSound, 0.35f); 
+        }
+    }
+    
     public int GetCurrentComboStep() { return comboStep; }
 
     private void ThrowSword()
-    {
+    {   
+        AudioManager.Instance.PlaySFX(throwSwordSound, 1.0f);
+        
         isArmed = false;
         hasThrownSword = true; 
         CharacterSwitcher.Instance.SwitchToUnarmed();
@@ -670,7 +730,9 @@ public class PlayerController : MonoBehaviour
     
     // 🟢 ฟังก์ชันนี้ดาบจะเป็นคนเรียกใช้ตอนที่มันบินมาถึงตัวเราแล้ว
     public void CatchSword()
-    {
+    {   
+        AudioManager.Instance.PlaySFX(catchSwordSound, 1.0f);
+        
         isArmed = true; 
         hasThrownSword = false;
         
@@ -750,7 +812,9 @@ public class PlayerController : MonoBehaviour
     }
 
     private IEnumerator TargetDashAttack(Transform target)
-    {
+    {   
+        AudioManager.Instance.PlaySFX(targetDashSound, 1.0f);
+        
         isTargetDashing = true;
         if (animator != null) animator.SetBool("isDashing", true);
 
@@ -931,7 +995,9 @@ public class PlayerController : MonoBehaviour
         if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.3f, 0.2f);
 
         if (isBlocking)
-        {
+        {   
+            AudioManager.Instance.PlaySFX(blockSound, 1.0f);
+            
             if (spriteRenderer != null) StartCoroutine(FlashColorRoutine(blockColor, originalColor));
             if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.15f, 0.08f); 
             TriggerHitStop(0.04f); 
@@ -940,7 +1006,11 @@ public class PlayerController : MonoBehaviour
             if (currentGuardGauge <= 0) TriggerArmorBreak();
             else damage = Mathf.RoundToInt(damage * blockDamageReduction);
         }
-        else TriggerJuice(JuiceType.Hurt);
+        else 
+        {
+            AudioManager.Instance.PlaySFX(hurtSound, 1.0f);
+            TriggerJuice(JuiceType.Hurt);
+        }
 
         currentHealth -= damage;
         if (UIManager.Instance != null) UIManager.Instance.UpdateHealth(currentHealth, maxHealth);
@@ -961,6 +1031,9 @@ public class PlayerController : MonoBehaviour
     {
         isStunned = true;
         isBlocking = false; 
+        
+        AudioManager.Instance.PlaySFX(armorBreakSound, 1.2f);
+        
         if (animator != null) animator.SetBool("isBlocking", false);
         currentGuardGauge = 0; 
         stunTimer = stunDuration;
@@ -968,8 +1041,7 @@ public class PlayerController : MonoBehaviour
         
         if (rb != null) rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
     }
-
-    // 🟢 ลบ void Die() อันเก่าทิ้ง แล้วใช้อันนี้แทน
+    
     void Die() 
     {   
         if (isDead) return;
@@ -978,6 +1050,8 @@ public class PlayerController : MonoBehaviour
         
         isDead = true;
         isInvincible = true;
+        
+        AudioManager.Instance.PlaySFX(deathSound, 1.5f);
         
         if (rb != null) rb.linearVelocity = Vector2.zero;
         isDashing = false;
@@ -1095,8 +1169,14 @@ public class PlayerController : MonoBehaviour
             // ปลดเบรกมือทุกชนิด ให้ขยับได้ปกติ
             rb.constraints = RigidbodyConstraints2D.FreezeRotation; 
         }
+
+        // 🌟 3. [เพิ่มใหม่] คืนค่าสีตัวละครกลับเป็นปกติ! ท่าไม้ตายแก้บั๊กตัวแดงค้าง
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = originalColor;
+        }
         
-        // 3. ปิด Hitbox ที่อาจจะเปิดค้างอยู่
+        // 4. ปิด Hitbox ที่อาจจะเปิดค้างอยู่
         AnimEvent_DisableHitbox();
     }
     

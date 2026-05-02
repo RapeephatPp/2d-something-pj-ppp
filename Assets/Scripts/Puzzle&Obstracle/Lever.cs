@@ -1,16 +1,23 @@
 using UnityEngine;
-using System.Collections.Generic; // 🟢 ขาดไม่ได้เลยสำหรับการใช้งาน List
+using System.Collections.Generic; 
 
 public class Lever : MonoBehaviour
 {
     [Header("Switch Targets (ใส่ได้หลายอัน)")]
-    public List<GameObject> lockedGates;        // 🟢 เปลี่ยนเป็น List สำหรับประตูล่องหน
-    public List<SlidingDoor> targetSlidingDoors; // 🟢 เปลี่ยนเป็น List สำหรับประตูเลื่อน
-    public List<LaserTrap> targetLasers;         // 🟢 เปลี่ยนเป็น List สำหรับเลเซอร์
+    public List<GameObject> lockedGates;         // สำหรับปิดประตูล่องหน หรือซ่อนออบเจกต์
+    public List<SlidingDoor> targetSlidingDoors; // สำหรับประตูเลื่อน
+    public List<LaserTrap> targetLasers;         // สำหรับเลเซอร์
     
+    [Space(10)]
+    [Header("✨ สิ่งที่ต้องการ 'เปิด' (Activate) เมื่อสับสวิตช์")]
+    public List<GameObject> objectsToActivate;   // ลากสะพาน, แท่นกระโดด, หรือแสงไฟ มาใส่ช่องนี้ได้เลย
+
     [Header("Visuals")]
     public Sprite activatedSprite; 
     public Color activatedColor = Color.gray; 
+
+    [Header("Audio SFX")]
+    public AudioClip leverSound; // 🟢 เสียงสับสวิตช์คันโยก (แกร๊ก!)
 
     private bool isPlayerNear = false;
     private bool isUsed = false;
@@ -18,7 +25,7 @@ public class Lever : MonoBehaviour
 
     void Start()
     {
-        sr = GetComponent<SpriteRenderer>();
+        sr = GetComponent<SpriteRenderer>(); 
     }
 
     void Update()
@@ -36,19 +43,31 @@ public class Lever : MonoBehaviour
         
         Debug.Log("Lever Activated!");
 
-        // 🟢 สั่งปิดประตู Gate แบบล่องหน ทุกอันที่มีใน List
+        // 🟢 เล่นเสียงสับสวิตช์
+        if (AudioManager.Instance != null && leverSound != null)
+        {
+            AudioManager.Instance.PlaySFX(leverSound, 1.0f);
+        }
+
+        // 1. สั่งปิดออบเจกต์ (Deactivate) พวกประตูที่ขวางทาง
         foreach (GameObject gate in lockedGates)
         {
             if (gate != null) gate.SetActive(false); 
         }
 
-        // 🟢 สั่งดับเลเซอร์ ทุกอันที่มีใน List
+        // 2. สั่งเปิดออบเจกต์ (Activate) พวกสะพาน หรือกลไกที่ซ่อนอยู่
+        foreach (GameObject obj in objectsToActivate)
+        {
+            if (obj != null) obj.SetActive(true); 
+        }
+
+        // 3. สั่งดับเลเซอร์
         foreach (LaserTrap laser in targetLasers)
         {
             if (laser != null) laser.TurnOffLaser();
         }
 
-        // 🟢 สั่งเปิดประตูสไลด์ ทุกอันที่มีใน List
+        // 4. สั่งเปิดประตูสไลด์
         foreach (SlidingDoor door in targetSlidingDoors)
         {
             if (door != null) door.OpenDoor();
@@ -61,9 +80,10 @@ public class Lever : MonoBehaviour
             else sr.color = activatedColor;
         }
 
+        // เขย่ากล้องเพิ่ม Game Feel
         if (CameraShake.Instance != null) CameraShake.Instance.StartManagedShake(0.15f, 0.1f);
 
-        DisablePrompt();
+        DisablePrompt(); 
     }
 
     private void OnTriggerEnter2D(Collider2D collision)

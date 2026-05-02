@@ -5,18 +5,17 @@ using UnityEngine;
 public class CrumblingPlatform : MonoBehaviour
 {
     [Header("Settings")]
-    [Tooltip("เวลาหน่วงหลังจากผู้เล่นเหยียบ ก่อนที่พื้นจะพัง")]
     public float breakDelay = 0.5f; 
-    
-    [Tooltip("เวลาในการสร้างพื้นกลับมาใหม่ (ใส่ 0 ถ้าพังแล้วพังเลย)")]
     public float respawnTime = 3f;  
 
     [Header("Juice / Game Feel")]
-    [Tooltip("ระยะความกว้างของการสั่น ยิ่งเยอะยิ่งแกว่งแรง")]
     public float shakeIntensity = 0.05f;
-    [Tooltip("ความเร็วในการสั่นซ้าย-ขวา ยิ่งเยอะยิ่งสั่นรัว")]
     public float shakeSpeed = 50f;
     public ParticleSystem breakParticles; 
+    
+    [Header("Audio SFX")]
+    public AudioClip crumbleWarningSound; // 🟢 เสียงร้าว/กรอบแกรบ ตอนเพิ่งเหยียบ
+    public AudioClip breakSound;          // 🟢 เสียงหินถล่ม/แตกกระจาย
 
     private bool isSteppedOn = false;
     private SpriteRenderer spriteRenderer;
@@ -36,7 +35,6 @@ public class CrumblingPlatform : MonoBehaviour
         {
             foreach (ContactPoint2D contact in collision.contacts)
             {
-                // เช็คว่าเหยียบจากด้านบน
                 if (contact.normal.y < -0.5f) 
                 {
                     StartCoroutine(BreakSequence());
@@ -50,39 +48,35 @@ public class CrumblingPlatform : MonoBehaviour
     {
         isSteppedOn = true;
 
-        // --- อัปเกรด Juice: สั่นรัวๆ แบบโครงสร้างจะพัง ---
+        // 🟢 เล่นเสียงร้าวเตือนผู้เล่น!
+        if (AudioManager.Instance != null && crumbleWarningSound != null)
+            AudioManager.Instance.PlaySFX(crumbleWarningSound, 0.6f);
+
         float timer = 0;
         while (timer < breakDelay)
         {
             timer += Time.deltaTime;
-            
-            // ใช้ Mathf.Sin เพื่อให้มันแกว่งซ้ายขวาอย่างรวดเร็วและสมูท (Mechanical Vibration)
             float offsetX = Mathf.Sin(Time.time * shakeSpeed) * shakeIntensity;
-            
-            // สุ่มสั่นขึ้น-ลงเล็กน้อยมากๆ เพื่อให้ดูไม่แข็งทื่อเกินไป (Random Jitter)
             float offsetY = Random.Range(-shakeIntensity, shakeIntensity) * 0.3f;
-
-            // อัปเดตตำแหน่ง
             transform.position = originalPosition + new Vector3(offsetX, offsetY, 0);
-            
             yield return null; 
         }
 
-        // จัดตำแหน่งกลับที่เดิมก่อนพัง
         transform.position = originalPosition;
-
-        // พังพื้น!
         BreakPlatform();
     }
 
     void BreakPlatform()
     {
+        // 🟢 เล่นเสียงถล่ม (เรียกผ่าน AudioManager จะได้ไม่โดนตัดเสียงตอนพื้นโดน Disable)
+        if (AudioManager.Instance != null && breakSound != null)
+            AudioManager.Instance.PlaySFX(breakSound, 0.9f);
+
         if (breakParticles != null) 
         {
             Instantiate(breakParticles, transform.position, Quaternion.identity);
         }
 
-        // ปิดการมองเห็นและการชน
         spriteRenderer.enabled = false;
         coll.enabled = false;
 

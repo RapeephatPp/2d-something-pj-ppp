@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6077259748417970299}
   - component: {fileID: 3826375285618734669}
   - component: {fileID: 9118589406642365202}
+  - component: {fileID: 1713119577400719955}
   m_Layer: 8
   m_Name: Platform_Crumble
   m_TagString: Untagged
@@ -156,3 +157,58 @@ MonoBehaviour:
   shakeIntensity: 0.05
   shakeSpeed: 50
   breakParticles: {fileID: 0}
+  crumbleWarningSound: {fileID: 8300000, guid: db595c450beb7444b85d697ace1101aa, type: 3}
+  breakSound: {fileID: 8300000, guid: 4f987f9dbc96a2f4d9e9dbd226f11987, type: 3}
+--- !u!114 &1713119577400719955
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5053922591347832923}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7db70e0ea77f5ac47a8f4565a9406397, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.2D.Runtime::UnityEngine.Rendering.Universal.ShadowCaster2D
+  m_ShadowGroup: 0
+  m_Priority: 0
+  m_ComponentVersion: 5
+  m_HasRenderer: 1
+  m_UseRendererSilhouette: 1
+  m_CastsShadows: 1
+  m_SelfShadows: 0
+  m_AlphaCutoff: 0.1
+  m_ApplyToSortingLayers: 00000000
+  m_ShapePath:
+  - {x: -1.5, y: -0.3125, z: 0}
+  - {x: -1.5, y: 0.3125, z: 0}
+  - {x: 1.5, y: 0.3125, z: 0}
+  - {x: 1.5, y: -0.3125, z: 0}
+  m_ShapePathHash: 0
+  m_InstanceId: 0
+  m_ShadowShape2DComponent: {fileID: 3826375285618734669}
+  m_ShadowShape2DProvider:
+    rid: 1204823538504826985
+  m_ShadowCastingSource: 2
+  m_ShadowMesh:
+    m_Mesh: {fileID: 0}
+    m_LocalBounds:
+      m_Center: {x: 0, y: -0.18815613, z: 0}
+      m_Extent: {x: 1.4700012, y: 0.09434509, z: 0}
+    m_EdgeProcessing: 1
+    m_TrimEdge: 0.03
+    m_FlipX: 0
+    m_FlipY: 0
+    m_InitialTrim: 0
+  m_CastingOption: 1
+  m_PreviousTrimEdge: 0.03
+  m_PreviousEdgeProcessing: 1
+  m_PreviousShadowCastingSource: 2
+  m_PreviousShadowShape2DSource: {fileID: 3826375285618734669}
+  references:
+    version: 2
+    RefIds:
+    - rid: 1204823538504826985
+      type: {class: ShadowShape2DProvider_Collider2D, ns: UnityEngine.Rendering.Universal, asm: Unity.RenderPipelines.Universal.2D.Runtime}
+      data: 

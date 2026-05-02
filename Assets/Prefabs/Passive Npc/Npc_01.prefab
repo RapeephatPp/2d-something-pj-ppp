@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 107553177283293563}
   - component: {fileID: 5712453475870280506}
   - component: {fileID: 5793452473289489802}
+  - component: {fileID: 4441736128523406224}
   m_Layer: 10
   m_Name: Npc_01
   m_TagString: Enemy
@@ -64,7 +65,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 7f218344d157eaf4e99871b4df63ddc2, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -156,6 +157,11 @@ MonoBehaviour:
   waitToChase: 0
   separationRadius: 0.7
   separationForce: 7
+  alertSound: {fileID: 8300000, guid: e02dfadef90b4a5438f78b2b94e32e5c, type: 3}
+  attackSound: {fileID: 0}
+  hurtSound: {fileID: 8300000, guid: 9ee29d6493f3f6a409e7306fd1fcb3df, type: 3}
+  deathSound: {fileID: 8300000, guid: 987661c7f513e654faf357fa1186c61a, type: 3}
+  stunSound: {fileID: 8300000, guid: 5c1ef129d2c004e4695b7db2c375ad1c, type: 3}
   raycastOffset: {x: 0, y: 0}
   enemyHitbox: {fileID: 0}
 --- !u!61 &107553177283293563
@@ -253,6 +259,59 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &4441736128523406224
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3980123873913365912}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7db70e0ea77f5ac47a8f4565a9406397, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.2D.Runtime::UnityEngine.Rendering.Universal.ShadowCaster2D
+  m_ShadowGroup: 0
+  m_Priority: 2
+  m_ComponentVersion: 5
+  m_HasRenderer: 1
+  m_UseRendererSilhouette: 1
+  m_CastsShadows: 1
+  m_SelfShadows: 0
+  m_AlphaCutoff: 0.1
+  m_ApplyToSortingLayers: 00000000
+  m_ShapePath:
+  - {x: -0.06, y: 0.060000014, z: 0}
+  - {x: -0.06, y: 0.36, z: 0}
+  - {x: 0.07, y: 0.36, z: 0}
+  - {x: 0.07, y: 0.060000014, z: 0}
+  m_ShapePathHash: -1999448995
+  m_InstanceId: 0
+  m_ShadowShape2DComponent: {fileID: 4047041043706469467}
+  m_ShadowShape2DProvider:
+    rid: 1204823543341645904
+  m_ShadowCastingSource: 2
+  m_ShadowMesh:
+    m_Mesh: {fileID: 0}
+    m_LocalBounds:
+      m_Center: {x: 0.0049972534, y: 0.20999146, z: 0}
+      m_Extent: {x: 0.034996033, y: 0.11999512, z: 0}
+    m_EdgeProcessing: 1
+    m_TrimEdge: 0.03
+    m_FlipX: 0
+    m_FlipY: 0
+    m_InitialTrim: 0.03
+  m_CastingOption: 1
+  m_PreviousTrimEdge: 0.03
+  m_PreviousEdgeProcessing: 1
+  m_PreviousShadowCastingSource: 2
+  m_PreviousShadowShape2DSource: {fileID: 4047041043706469467}
+  references:
+    version: 2
+    RefIds:
+    - rid: 1204823543341645904
+      type: {class: ShadowShape2DProvider_SpriteRenderer, ns: UnityEngine.Rendering.Universal, asm: Unity.RenderPipelines.Universal.2D.Runtime}
+      data: 
 --- !u!1 &5736259319544279972
 GameObject:
   m_ObjectHideFlags: 0

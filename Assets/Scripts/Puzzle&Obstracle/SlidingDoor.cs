@@ -14,10 +14,16 @@ public class SlidingDoor : MonoBehaviour
     [Tooltip("เริ่มเกมมาให้เปิดทิ้งไว้ก่อนเลยไหม?")]
     public bool startOpen = false; 
 
+    [Header("Audio SFX")]
+    public AudioClip openSound;  // 🟢 เสียงตอนเริ่มเปิดประตู (ครืนนน...)
+    public AudioClip closeSound; // 🟢 เสียงตอนเริ่มปิดประตู (ตึ้ง!)
+
     private Vector3 closedPosition;
     private Vector3 openPosition;
     private bool isPlayerNear = false;
     private bool isOpen = false;
+    
+    private bool wasTargetOpen; // 🟢 เอาไว้จำว่าเฟรมที่แล้วประตูตั้งใจจะเปิดหรือปิด
 
     void Start()
     {
@@ -25,6 +31,8 @@ public class SlidingDoor : MonoBehaviour
         openPosition = closedPosition + new Vector3(0, openHeight, 0);
         
         isOpen = startOpen;
+        wasTargetOpen = isOpen; // ตั้งค่าความจำเริ่มต้น
+
         if (isOpen)
         {
             transform.position = openPosition; // วาร์ปไปจุดเปิดเลยตอนเริ่มเกม
@@ -40,6 +48,26 @@ public class SlidingDoor : MonoBehaviour
             shouldBeOpen = isPlayerNear || isOpen; 
         }
 
+        // ==========================================
+        // 🟢 ระบบเช็คเสียง: ถ้าเป้าหมายเปลี่ยน ให้เล่นเสียงทันที!
+        // ==========================================
+        if (shouldBeOpen && !wasTargetOpen)
+        {
+            // ประตูกำลังจะเปิด!
+            if (AudioManager.Instance != null && openSound != null)
+                AudioManager.Instance.PlaySFX(openSound, 0.8f);
+        }
+        else if (!shouldBeOpen && wasTargetOpen)
+        {
+            // ประตูกำลังจะปิด!
+            if (AudioManager.Instance != null && closeSound != null)
+                AudioManager.Instance.PlaySFX(closeSound, 0.8f);
+        }
+
+        // อัปเดตความจำไว้ใช้เฟรมต่อไป
+        wasTargetOpen = shouldBeOpen;
+
+        // ขยับประตู
         Vector3 targetPosition = shouldBeOpen ? openPosition : closedPosition;
         transform.position = Vector3.MoveTowards(transform.position, targetPosition, slideSpeed * Time.deltaTime);
     }
@@ -66,9 +94,6 @@ public class SlidingDoor : MonoBehaviour
         }
     }
 
-    // ==========================================
-    // 🟢 PUBLIC API (สำหรับให้ Lever.cs มาสั่งงาน)
-    // ==========================================
     public void OpenDoor()
     {
         isOpen = true;

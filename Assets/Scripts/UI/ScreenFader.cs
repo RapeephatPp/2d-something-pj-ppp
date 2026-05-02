@@ -97,4 +97,32 @@ public class ScreenFader : MonoBehaviour
 
         fadeImageGroup.alpha = targetAlpha;
     }
+    
+    // 🟢 ฟังก์ชันวาร์ปแบบเสร็จสรรพในตัวเดียว (รันที่ ScreenFader ทำให้ไม่โดน Culler ปิดกลางอากาศ)
+    public IEnumerator TeleportFadeRoutine(Vector3 destination, TargetFormMode formMode)
+    {
+        // 1. ล็อคเมาส์ จอมืดลง
+        if (fadeImageGroup != null) fadeImageGroup.blocksRaycasts = true;
+        yield return StartCoroutine(FadeRoutine(1f));
+
+        // 2. สลับร่างและวาร์ป (ทำตอนที่จอมืดสนิทไปแล้ว)
+        if (CharacterSwitcher.Instance != null)
+        {
+            if (formMode == TargetFormMode.ForceArmed) 
+                CharacterSwitcher.Instance.SwitchToArmed();
+            else if (formMode == TargetFormMode.ForceUnarmed) 
+                CharacterSwitcher.Instance.SwitchToUnarmed();
+
+            CharacterSwitcher.Instance.TeleportActivePlayer(destination);
+        }
+
+        // รอสักนิดเพื่อให้กล้องและระบบฟิสิกส์ขยับตามทัน
+        yield return new WaitForSeconds(0.1f);
+
+        // 3. จอสว่างขึ้น
+        yield return StartCoroutine(FadeRoutine(0f));
+
+        // ปลดล็อคเมาส์
+        if (fadeImageGroup != null) fadeImageGroup.blocksRaycasts = false;
+    }
 }

@@ -58,6 +58,7 @@ MonoBehaviour:
   maxNPCs: 1
   minSpawnTime: 10
   maxSpawnTime: 30
+  spawnSound: {fileID: 8300000, guid: d763f951b05df294ebde31f270e294b5, type: 3}
 --- !u!1 &7032501351013645420
 GameObject:
   m_ObjectHideFlags: 0

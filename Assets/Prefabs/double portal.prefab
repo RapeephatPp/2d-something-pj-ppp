@@ -293,6 +293,8 @@ MonoBehaviour:
   autoTeleport: 0
   formAfterTeleport: 0
   interactPrompt: {fileID: 1687380832381917935}
+  teleportSound: {fileID: 8300000, guid: e7f0ca716c511c74fbdadbdcb3a7b0e2, type: 3}
+  portalHumSound: {fileID: 0}
 --- !u!61 &7520952748275336506
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -500,6 +502,8 @@ MonoBehaviour:
   autoTeleport: 0
   formAfterTeleport: 0
   interactPrompt: {fileID: 2076321877343609833}
+  teleportSound: {fileID: 8300000, guid: e7f0ca716c511c74fbdadbdcb3a7b0e2, type: 3}
+  portalHumSound: {fileID: 0}
 --- !u!61 &4266036602265615199
 BoxCollider2D:
   m_ObjectHideFlags: 0

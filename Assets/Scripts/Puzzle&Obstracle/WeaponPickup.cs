@@ -7,25 +7,28 @@ public class WeaponPickup : MonoBehaviour
 
     [Header("Replacement Object")]
     [Tooltip("เอา Prefab ของแท่นวางเปล่าๆ หรือของที่จะให้โผล่มาแทนที่ มาใส่ตรงนี้")]
-    public GameObject replacementPrefab; // 🟢 เพิ่มตัวแปรนี้เข้ามา
+    public GameObject replacementPrefab; 
+
+    [Header("Audio SFX")]
+    public AudioClip pickupSound; // 🟢 เสียงเก็บอาวุธ (แกร๊ง!)
 
     private bool isPlayerNear = false;
 
     void Update()
     {
-        // ถ้าผู้เล่นอยู่ใกล้ และกด E
         if (isPlayerNear && Input.GetKeyDown(interactKey))
         {
-            // 1. สั่งให้ผู้เล่นเปลี่ยนเป็นร่างถือดาบ
+            // 🟢 เล่นเสียงหยิบอาวุธ
+            if (AudioManager.Instance != null && pickupSound != null)
+                AudioManager.Instance.PlaySFX(pickupSound, 1.0f);
+
             CharacterSwitcher.Instance.SwitchToArmed();
             
-            // 🟢 2. เสก Object ใหม่ขึ้นมาแทนที่ตำแหน่งเดิมและองศาเดิม (ถ้ามีการลากมาใส่ไว้)
             if (replacementPrefab != null)
             {
                 Instantiate(replacementPrefab, transform.position, transform.rotation);
             }
 
-            // 3. ทำลายวัตถุจุดเก็บดาบทิ้งไปเลย
             Destroy(gameObject);
         }
     }

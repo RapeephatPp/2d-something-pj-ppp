@@ -9,6 +9,11 @@ public class ThrownSword : MonoBehaviour
     public int throwDamage = 15;    
     public float stunDuration = 0.3f;
 
+    [Header("Audio SFX")]
+    public AudioClip hitEnemySound;  // 🟢 เสียงดาบปักเนื้อ/ศัตรู (ฉัวะ!)
+    public AudioClip stickWallSound; // 🟢 เสียงดาบปักกำแพง (ฉึก!)
+    public AudioClip bounceSound;    // 🟢 เสียงดาบหล่นกระแทกพื้น (เพ้ง/แกร๊ง!)
+
     private Rigidbody2D rb;
     private Collider2D col;
     private bool isStuck = false;
@@ -16,25 +21,20 @@ public class ThrownSword : MonoBehaviour
     private Transform playerTarget;
     private PlayerController playerController;
 
-    // 🟢 เพิ่มตัวแปรสำหรับจำขนาดดั้งเดิมของดาบ
     private Vector3 baseScale; 
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<Collider2D>();
-        
-        // 🟢 จำขนาดที่คุณตั้งไว้ใน Inspector ตั้งแต่ตอนเกิด
         baseScale = transform.localScale; 
     }
 
     void Start()
     {
-        // ตอนดาบเพิ่งเกิด สั่งให้ทะลุผู้เล่นไปก่อน จะได้ไม่กระเด็นชนกันเอง
         SetPlayerCollision(true); 
     }
 
-    // 🟢 สร้างฟังก์ชันเปิด/ปิด การทะลุผู้เล่นแบบสั่งได้!
     private void SetPlayerCollision(bool ignore)
     {
         GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
@@ -56,7 +56,6 @@ public class ThrownSword : MonoBehaviour
         float angle = Mathf.Atan2(throwDirection.y, throwDirection.x) * Mathf.Rad2Deg;
         transform.rotation = Quaternion.Euler(0, 0, angle);
 
-        // 🟢 สลับด้านโดยใช้ขนาดดั้งเดิมของคุณ (ไม่กลายเป็นดาบจิ๋วแล้ว!)
         float flipY = throwDirection.x < 0 ? -Mathf.Abs(baseScale.y) : Mathf.Abs(baseScale.y);
         transform.localScale = new Vector3(baseScale.x, flipY, baseScale.z);
 
@@ -77,7 +76,6 @@ public class ThrownSword : MonoBehaviour
         
         gameObject.layer = LayerMask.NameToLayer("Default"); 
 
-        // 🟢 ตอนเรียกดาบกลับ สั่งให้ทะลุผู้เล่นอีกรอบ จะได้ไม่ไปกระแทกหน้าตัวเอง
         SetPlayerCollision(true);
     }
 
@@ -89,7 +87,6 @@ public class ThrownSword : MonoBehaviour
             float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.Euler(0, 0, angle);
 
-            // 🟢 สลับด้านตอนบินกลับ (คงขนาดเดิมไว้)
             float flipY = dir.x < 0 ? -Mathf.Abs(baseScale.y) : Mathf.Abs(baseScale.y);
             transform.localScale = new Vector3(baseScale.x, flipY, baseScale.z);
 
@@ -105,6 +102,22 @@ public class ThrownSword : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
+        // 🟢 ตรวจจับเสียงตอนดาบกลิ้งหล่นกระแทกพื้น!
+        // ถ้าดาบหมดสภาพ (กลิ้งอยู่) และเป็น Dynamic ให้เช็คแรงกระแทก
+        if (isStuck && !isReturning && rb.bodyType == RigidbodyType2D.Dynamic)
+        {
+            // ถ้าแรงกระแทก (relativeVelocity) มากกว่า 1 ค่อยส่งเสียง (กันเสียงรัวตอนดาบนอนไถลนิ่งๆ)
+            if (collision.relativeVelocity.magnitude > 1f)
+            {
+                if (AudioManager.Instance != null && bounceSound != null)
+                {
+                    // 🟢 คำนวณความดังตามความแรงที่ตกกระทบ! ยิ่งตกแรง ยิ่งดัง!
+                    float volume = Mathf.Clamp(collision.relativeVelocity.magnitude * 0.1f, 0.1f, 0.8f);
+                    AudioManager.Instance.PlaySFX(bounceSound, volume);
+                }
+            }
+        }
+
         HandleImpact(collision.gameObject);
     }
 
@@ -126,13 +139,15 @@ public class ThrownSword : MonoBehaviour
         if (isStuck || isReturning) return;
         if (hitObj.CompareTag("Weapon")) return;
 
-        if (hitObj.CompareTag("Enemy"))
+        if (hitObj.CompareTag("Enemy") || hitObj.CompareTag("Boss"))
         {
+            // 🟢 เสียงดาบสับศัตรู
+            if (AudioManager.Instance != null && hitEnemySound != null)
+                AudioManager.Instance.PlaySFX(hitEnemySound, 0.8f);
+
             EnemyBehavior enemy = hitObj.GetComponent<EnemyBehavior>();
             if (enemy != null) 
             {
-                // 🟢 เปลี่ยนมาเรียกใช้ฟังก์ชันทำสตันแทน TakeDamage() เดิม! 
-                // ทำให้ศัตรูไม่ปลิวกระเด็นอีกต่อไป
                 enemy.ApplySwordStun(throwDamage, stunDuration);
             }
             FallToGround(); 
@@ -145,12 +160,20 @@ public class ThrownSword : MonoBehaviour
         }
         else 
         {
+            // 🟢 เสียงปาไปโดนของแข็งอย่างอื่น (ที่ปักไม่ได้) ให้ดังเพ้งแล้วเด้งออก!
+            if (AudioManager.Instance != null && bounceSound != null)
+                AudioManager.Instance.PlaySFX(bounceSound, 1.0f);
+
             FallToGround();
         }
     }
 
     private void StickToWall()
     {
+        // 🟢 เสียงดาบปักกำแพงอย่างจัง!
+        if (AudioManager.Instance != null && stickWallSound != null)
+            AudioManager.Instance.PlaySFX(stickWallSound, 1.0f);
+
         isStuck = true;
         transform.position += transform.right * embedDepth;
         
@@ -159,8 +182,6 @@ public class ThrownSword : MonoBehaviour
         rb.bodyType = RigidbodyType2D.Kinematic;
 
         gameObject.layer = LayerMask.NameToLayer("Ground");
-
-        // 🟢 พระเอกอยู่ตรงนี้! ยกเลิกการทะลุผู้เล่น ทำให้เราเหยียบดาบที่ปักกำแพงได้แล้ว!
         SetPlayerCollision(false);
     }
 
@@ -171,8 +192,6 @@ public class ThrownSword : MonoBehaviour
         rb.gravityScale = 3f; 
         rb.linearVelocity = new Vector2(rb.linearVelocity.x * -0.3f, 5f); 
         rb.angularVelocity = Random.Range(300f, 700f) * (Random.value > 0.5f ? 1 : -1);
-
-        // ตอนดาบตกพื้น ก็ให้เหยียบได้หรือชนได้ตามปกติ
         SetPlayerCollision(false);
     }
 }

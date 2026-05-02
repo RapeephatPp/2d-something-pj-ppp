@@ -4,11 +4,13 @@ using System.Collections.Generic;
 public class PassiveSpawner : MonoBehaviour
 {
     [Header("Spawner Settings")]
-    // 🟢 เปลี่ยนเป็น Array เพื่อให้ใส่ Prefab ได้หลายแบบ
     public GameObject[] npcPrefabs;      
     public int maxNPCs = 3;             
     public float minSpawnTime = 3f;     
     public float maxSpawnTime = 7f;     
+
+    [Header("Audio SFX")]
+    public AudioClip spawnSound; // 🟢 เสียงตอนที่ NPC โผล่ออกมา (เช่น เสียงป๊อป! หรือเสียงฟรึ่บ!)
 
     private List<GameObject> spawnedNPCs = new List<GameObject>();
     private float spawnTimer;
@@ -43,7 +45,15 @@ public class PassiveSpawner : MonoBehaviour
         GameObject selectedPrefab = npcPrefabs[randomIndex];
 
         GameObject newNPC = Instantiate(selectedPrefab, transform.position, Quaternion.identity);
+        
+        // 🟢 เล่นเสียง Spawn!
+        if (AudioManager.Instance != null && spawnSound != null)
+        {
+            AudioManager.Instance.PlaySFX(spawnSound, 0.8f);
+        }
+
         spawnedNPCs.Add(newNPC);
+        newNPC.transform.SetParent(this.transform);
 
         EnemyBehavior behavior = newNPC.GetComponent<EnemyBehavior>();
         if (behavior != null)
