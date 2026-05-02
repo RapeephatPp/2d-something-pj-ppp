@@ -50,8 +50,8 @@ public class MainMenuController : MonoBehaviour
         // 🟢 ล้างข้อมูล Checkpoint เก่าทิ้ง ป้องกันบั๊กวาร์ปมั่ว
         CharacterSwitcher.hasCheckpoint = false; 
 
-        if (ScreenFader.Instance != null) ScreenFader.Instance.FadeToScene(1); 
-        else SceneManager.LoadScene(1); 
+        if (ScreenFader.Instance != null) ScreenFader.Instance.FadeToScene(2); 
+        else SceneManager.LoadScene(2); 
     }
 
     public void ContinueGame()
@@ -61,7 +61,7 @@ public class MainMenuController : MonoBehaviour
         // 🟢 ให้โหลดด่านเซฟด้วยการเฟดจอเหมือนกัน
         if (ScreenFader.Instance != null)
         {
-            ScreenFader.Instance.FadeToScene(1); // (เดี๋ยวค่อยเปลี่ยนเป็นเลขด่านตามเซฟทีหลัง)
+            ScreenFader.Instance.FadeToScene(2); // (เดี๋ยวค่อยเปลี่ยนเป็นเลขด่านตามเซฟทีหลัง)
         }
     }
 
