@@ -1218,6 +1218,7 @@ public class PlayerController : MonoBehaviour
         if (spriteRenderer != null)
         {
             spriteRenderer.color = originalColor;
+            spriteRenderer.enabled = true;
         }
         
         // 4. ปิด Hitbox ที่อาจจะเปิดค้างอยู่

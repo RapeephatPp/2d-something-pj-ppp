@@ -136,12 +136,11 @@ public class ThrownSword : MonoBehaviour
 
     private void HandleImpact(GameObject hitObj)
     {
-        if (isStuck || isReturning) return;
+        if (isStuck) return; // ถ้าปักอยู่ ไม่ต้องสนใจอะไร
         if (hitObj.CompareTag("Weapon")) return;
 
         if (hitObj.CompareTag("Enemy") || hitObj.CompareTag("Boss"))
         {
-            // 🟢 เสียงดาบสับศัตรู
             if (AudioManager.Instance != null && hitEnemySound != null)
                 AudioManager.Instance.PlaySFX(hitEnemySound, 0.8f);
 
@@ -150,9 +149,17 @@ public class ThrownSword : MonoBehaviour
             {
                 enemy.ApplySwordStun(throwDamage, stunDuration);
             }
-            FallToGround(); 
+            
+            // 🟢 [อัปเกรด] ถ้าดาบกำลังบินกลับ "ไม่ต้องหล่นพื้น" ให้มันบินทะลุสับศัตรูต่อยันถึงมือเราเลย!
+            if (!isReturning) 
+            {
+                FallToGround(); 
+            }
             return;
         }
+
+        // 🟢 ถ้ากำลังบินกลับ แล้วชนกำแพง ให้ทะลุกำแพงกลับมาเลย ไม่ต้องปักใหม่
+        if (isReturning) return; 
 
         if (hitObj.layer == LayerMask.NameToLayer("Ground"))
         {
@@ -160,7 +167,6 @@ public class ThrownSword : MonoBehaviour
         }
         else 
         {
-            // 🟢 เสียงปาไปโดนของแข็งอย่างอื่น (ที่ปักไม่ได้) ให้ดังเพ้งแล้วเด้งออก!
             if (AudioManager.Instance != null && bounceSound != null)
                 AudioManager.Instance.PlaySFX(bounceSound, 1.0f);
 

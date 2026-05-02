@@ -91,6 +91,7 @@ public class EnemyBehavior : MonoBehaviour
     private bool isPreparingMelee = false;
     private bool isLunging = false;
     private float nextMeleeTime;
+    private Coroutine activeStunRoutine;
     
     [Header("Drone (Flying) Settings")]
     public float hoverHeight = 3f;          
@@ -844,8 +845,8 @@ public class EnemyBehavior : MonoBehaviour
         }
         else
         {
-            // ถ้ายังไม่ตาย ให้ติดสตัน
-            StartCoroutine(SwordStunRoutine(stunDuration));
+            if (activeStunRoutine != null) StopCoroutine(activeStunRoutine);
+            activeStunRoutine = StartCoroutine(SwordStunRoutine(stunDuration));
         }
     }
 
