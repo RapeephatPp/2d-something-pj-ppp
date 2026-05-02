@@ -234,7 +234,7 @@ public class EnemyBehavior : MonoBehaviour
         // ถ้าง้างปืนอยู่ หรือโดนตีถอยหลัง ห้ามเดินหรือคิดอะไรทั้งนั้น
         if (isRangedAiming || isRetreating) return; 
 
-        if (distance <= detectionRange)
+        if (distance <= detectionRange && HasLineOfSightToPlayer(distance))
         {
             // --- เจอผู้เล่นแล้ว ---
             
@@ -547,7 +547,7 @@ public class EnemyBehavior : MonoBehaviour
             return; 
         }
 
-        if (distance <= detectionRange)
+        if (distance <= detectionRange && HasLineOfSightToPlayer(distance))
         {
             if (distance <= lungeRange && Time.time >= nextMeleeTime)
             {
@@ -636,7 +636,7 @@ public class EnemyBehavior : MonoBehaviour
 
     void HandleFlyingHostile(float distance)
     {
-        if (distance > detectionRange) return;
+        if (distance > detectionRange || !HasLineOfSightToPlayer(distance)) return;
 
         if (!isPreparingToShoot)
         {
@@ -1025,6 +1025,25 @@ public class EnemyBehavior : MonoBehaviour
                 p.TakeDamage(damage);
             }
         }
+    }
+    
+    private bool HasLineOfSightToPlayer(float currentDistance)
+    {
+        if (player == null) return false;
+        
+        // ถ้าผู้เล่นอยู่นอกระยะมองเห็น ก็ไม่ต้องคำนวณให้เสียเวลา
+        if (currentDistance > detectionRange) return false;
+
+        // คำนวณทิศทางจากตาของศัตรู ไปหา ผู้เล่น
+        Vector2 origin = new Vector2(transform.position.x, transform.position.y + 0.5f);
+        Vector2 target = new Vector2(player.position.x, player.position.y + 0.5f);
+        Vector2 direction = (target - origin).normalized;
+
+        // ยิงเลเซอร์ไปหาผู้เล่น โดยเช็คเฉพาะ Layer ที่เป็นอุปสรรค (obstacleLayer)
+        RaycastHit2D hit = Physics2D.Raycast(origin, direction, currentDistance, obstacleLayer);
+
+        // ถ้าเลเซอร์ยิงไป "ไม่โดนกำแพงเลย" แสดงว่ามองเห็นผู้เล่นชัดเจน! (Return True)
+        return hit.collider == null;
     }
     
     

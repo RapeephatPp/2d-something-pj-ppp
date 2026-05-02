@@ -47,6 +47,15 @@ public class GameTimer : MonoBehaviour
                 timerText.color = dangerColor;
                 Debug.Log("Time's Up! Game Over.");
                 isTimerRunning = false;
+
+                // 🟢 [อุดบั๊ก] หมดเวลาปุ๊บ สั่งเชือดผู้เล่นทันที!
+                GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+                if (playerObj != null)
+                {
+                    PlayerController pc = playerObj.GetComponent<PlayerController>();
+                    // สั่งดาเมจทะลวงโล่อมตะ (true) ผู้เล่นจะได้ตาย 100%
+                    if (pc != null) pc.TakeDamage(9999, true); 
+                }
             }
         }
     }

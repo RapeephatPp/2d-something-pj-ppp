@@ -39,16 +39,16 @@ public class PlayerController : MonoBehaviour
     private float jumpBufferCounter;
     
     [Header("Dash & I-Frames")]
-    public float dashDuration = 0.2f; // พุ่งนานแค่ไหน (ยิ่งน้อยยิ่งฉับไว)
+    public float dashDuration = 0.2f; 
     private bool isDashing;
-    private bool canDash = true; // เช็คโควต้าว่าพุ่งกลางอากาศไปหรือยัง
+    private bool canDash = true; 
     private float dashCooldownTimer;
     
     // 🟢 ตัวแปรพระเอก: โล่อมตะ
     public bool isInvincible = false;
     public bool isDead = false;
     public bool isRidingElevator = false;
-    public bool isKnockedBack = false; // 🟢 ล็อคไม่ให้ขยับตอนกระเด็น
+    public bool isKnockedBack = false; 
     private float knockbackTimer = 0f;
 
     public float dashRange = 7f; 
@@ -59,9 +59,9 @@ public class PlayerController : MonoBehaviour
     private bool isTargetDashing = false;
     
     [Header("Dash Trail Settings")]
-    public int trailGhosts = 8;               // จำนวนเงาตอนพุ่ง
-    public float ghostFadeDuration = 0.5f;    // เวลาที่เงาจะค่อยๆ จางหายไป
-    public Color ghostColor = new Color(0.1f, 0.1f, 0.1f, 0.8f); // สีของเงา (ตอนนี้ตั้งเป็นสีดำโปร่งแสง)
+    public int trailGhosts = 8;               
+    public float ghostFadeDuration = 0.5f;    
+    public Color ghostColor = new Color(0.1f, 0.1f, 0.1f, 0.8f); 
 
     [Header("Blocking & Armor Break")]
     public float maxGuardGauge = 100f; 
@@ -82,7 +82,7 @@ public class PlayerController : MonoBehaviour
     private bool isGrounded;
     
     private GameObject currentOneWayPlatform;
-    private bool isDropping = false; // 🟢 ตัวแปรบอกว่ากำลังร่วง (เพื่อสั่งปิดเบรกมือชั่วคราว)
+    private bool isDropping = false; 
 
     [Header("Visual Effects")]
     public Color blockColor = Color.blue;
@@ -105,7 +105,6 @@ public class PlayerController : MonoBehaviour
     public float fullComboCooldown = 0.5f; 
     private float nextComboEnableTime = 0f; 
     
-    // 🟢 [เพิ่มกลับมาแล้ว!] ตัวแปรเลือดที่เผลอลบไป
     [Header("Health Settings")]
     public int maxHealth = 20;
     public int currentHealth;
@@ -123,15 +122,15 @@ public class PlayerController : MonoBehaviour
     [Header("Sword Throw Mechanics")]
     public GameObject thrownSwordPrefab; 
     public Transform throwPoint;         
-    public float throwCooldown = 1.0f;    // เวลาคูลดาวน์หลังรับดาบกลับมา
-    private static float nextThrowTime = 0f;     // ตัวจับเวลา
+    public float throwCooldown = 1.0f;    
+    private static float nextThrowTime = 0f;     
     
     [Header("Death Effects (ระเบิดเลือด)")]
-    public GameObject bloodPrefab;      // 🟢 ลาก Prefab เลือดมาใส่ตรงนี้
-    public int minBloodSpawns = 10;     // ขั้นต่ำหยดเลือด
-    public int maxBloodSpawns = 20;     // สูงสุดหยดเลือด
-    public float bloodSpread = 1.5f;    // รัศมีการกระจาย
-    public GameObject droppedSwordPrefab; // 🟢 เพิ่มตัวแปรนี้สำหรับดาบที่จะกระเด็นออกมา
+    public GameObject bloodPrefab;      
+    public int minBloodSpawns = 10;     
+    public int maxBloodSpawns = 20;     
+    public float bloodSpread = 1.5f;    
+    public GameObject droppedSwordPrefab; 
     
     [Header("Audio SFX")]
     public AudioClip jumpSound;
@@ -145,12 +144,12 @@ public class PlayerController : MonoBehaviour
     public AudioClip armorBreakSound; 
     
     [Header("Audio SFX (Extra)")]
-    public AudioClip doubleJumpSound; // เสียงกระโดดครั้งที่ 2 (ควรแหลมหรือกังวานกว่าครั้งแรก)
-    public AudioClip throwSwordSound; // เสียงปาดาบแหวกอากาศ (ฟิ้ว!)
-    public AudioClip catchSwordSound; // เสียงรับดาบเข้ามือ (ฉึบ!)
-    public AudioClip targetDashSound; // เสียงตอนกด F พุ่งเสียบศัตรู
-    public AudioClip landSound;       // เสียงเท้ากระแทกพื้นตอนร่วงลงมา
-    public AudioClip footstepSound;   // เสียงเดิน (แปะๆ)
+    public AudioClip doubleJumpSound; 
+    public AudioClip throwSwordSound; 
+    public AudioClip catchSwordSound; 
+    public AudioClip targetDashSound; 
+    public AudioClip landSound;       
+    public AudioClip footstepSound;   
     
     private bool wasGrounded = true;
     
@@ -159,10 +158,13 @@ public class PlayerController : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        
         defaultGravity = rb.gravityScale;
         
         spriteRenderer = GetComponent<SpriteRenderer>();
+        
+        // 🟢 [จุดแก้บั๊กล่องหน!] ย้าย originalColor มาไว้ใน Awake เพื่อให้มันจำสีได้ทันทีก่อนจะโดน CharacterSwitcher ปิด!
+        if (spriteRenderer != null) originalColor = spriteRenderer.color;
+        
         if (animator == null) animator = GetComponent<Animator>();
         mainCam = Camera.main;
     }
@@ -183,7 +185,9 @@ public class PlayerController : MonoBehaviour
         
         currentHealth = maxHealth;
         currentGuardGauge = maxGuardGauge;
-        if (spriteRenderer != null) originalColor = spriteRenderer.color;
+        
+        // (ลบ originalColor ออกจากตรงนี้แล้ว)
+        
         if (UIManager.Instance != null) UIManager.Instance.UpdateHealth(currentHealth, maxHealth);
         
         AnimEvent_DisableHitbox();
@@ -191,6 +195,8 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {   
+        if (Time.timeScale == 0f || PauseMenuController.isPaused) return;
+        
         if (isDead) return;
         if (isDashing) return;
         if (isRidingElevator) return;
@@ -392,25 +398,41 @@ public class PlayerController : MonoBehaviour
         }
     }
     
-    // 🟢 ระบบปลดล็อคการชนชั่วคราว ให้ร่วงลงมาได้ (เวอร์ชันอัปเกรด)
-    // 🟢 เปลี่ยนมารับค่า PlatformEffector2D แทน
+    // 🟢 [อุดบั๊ก] เปลี่ยนจากพลิกพื้น เป็นสั่งเมินกล่องชนชั่วคราวแทน ศัตรูจะได้ไม่ร่วงตาม
+    // 🟢 [อุดบั๊กร่วงทะลุพื้น] แก้จังหวะการทำ Ignore Collision ใหม่ให้รัดกุมขึ้น
+    // 🟢 [อุดบั๊กร่วงทะลุพื้น] ดึง Collider "ทุกชิ้น" ของพื้นแผ่นนั้นมาปิด!
     private IEnumerator FallThroughRoutine(PlatformEffector2D effector)
     {
-        isDropping = true; // ปลดเบรกมือทันที!
+        isDropping = true; // ปลดเบรกมือทันที
         
-        float originalOffset = effector.rotationalOffset;
+        // 1. ดึงกล่องชน "ทั้งหมด" ของพื้นแผ่นนั้น (แก้ปัญหา Tilemap ที่มี Composite Collider ซ้อนกัน)
+        Collider2D[] platformCols = effector.GetComponents<Collider2D>();
+        Collider2D[] playerCols = GetComponentsInChildren<Collider2D>();
         
-        // 1. สั่ง "พลิก" หน้าพื้นให้หันลงล่าง (ตัวเราจะร่วงทะลุพื้นนั้นทันที 100%)
-        effector.rotationalOffset = 180f;
+        // 2. สั่งปิดการชนเฉพาะตัวเรา กับกล่องทุกใบของพื้นแผ่นนั้น
+        foreach (Collider2D platCol in platformCols)
+        {
+            foreach (Collider2D pCol in playerCols) 
+            {
+                if (pCol != null && platCol != null) Physics2D.IgnoreCollision(pCol, platCol, true);
+            }
+        }
         
-        // 2. ออกแรงกระชากตัวละครลงพื้นนิดนึง ให้หลุดจากทางลาดชัวร์ๆ
+        // 3. ออกแรงกระชากตัวละครลง เพื่อให้หลุดจากระยะพื้นทันที
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, -2f);
         
-        // 3. รอให้ร่วงพ้นพื้น (ใช้เวลาแค่แป๊บเดียวพอ)
-        yield return new WaitForSeconds(0.4f);
+        // 4. กลับมาใช้ WaitForSeconds (0.35 วินาทีกำลังสมูท) เพื่อแก้บั๊กคำนวณตำแหน่ง Y ของ Tilemap
+        yield return new WaitForSeconds(0.35f);
         
-        // 4. พลิกพื้นกลับมาเป็นปกติ และให้เบรกมือกลับมาทำงาน
-        if (effector != null) effector.rotationalOffset = originalOffset;
+        // 5. เปิดการชนกลับมาเหมือนเดิม
+        foreach (Collider2D platCol in platformCols)
+        {
+            foreach (Collider2D pCol in playerCols) 
+            {
+                if (pCol != null && platCol != null) Physics2D.IgnoreCollision(pCol, platCol, false);
+            }
+        }
+        
         isDropping = false; 
     }
 
@@ -831,8 +853,7 @@ public class PlayerController : MonoBehaviour
         float actualDashDist = Mathf.Max(0.1f, dist - 1.0f); 
         Vector2 targetPos = startPos + (dirToTarget * actualDashDist);
 
-        // 🟢 แก้บั๊กมุมเพี้ยนเวลาพุ่งไปด้านซ้าย:
-        // ค้นหามุมด้วย Atan2 แต่ให้คูณทิศทาง (facingDir) ที่หันหน้าอีกที เพื่อชดเชยการพลิกสเกลของรูปภาพ
+        // องศาพุ่ง
         float dashAngle = Mathf.Atan2(dirToTarget.y, Mathf.Abs(dirToTarget.x)) * Mathf.Rad2Deg * facingDir;
         transform.rotation = Quaternion.Euler(0, 0, dashAngle);
 
@@ -850,6 +871,15 @@ public class PlayerController : MonoBehaviour
         {
             if (target == null) break; 
             
+            // --------------------------------------------------------
+            // 🟢 [อุดบั๊กพุ่งทะลุ] เช็คระยะห่างตลอดเวลา ถ้าประชิดตัวแล้วให้หยุดพุ่งทันที!
+            // --------------------------------------------------------
+            float currentDist = Vector2.Distance(transform.position, target.position);
+            if (currentDist <= 1.2f) // ถ้าระยะห่างน้อยกว่าหรือเท่ากับ 1.2 หน่วย
+            {
+                break; // เบรกเอี๊ยด! หลุดออกจากลูปการพุ่งทันที
+            }
+
             ghostTimer -= Time.fixedDeltaTime;
             if (ghostTimer <= 0)
             {
@@ -863,6 +893,7 @@ public class PlayerController : MonoBehaviour
             yield return new WaitForFixedUpdate();
         }
 
+        // พอพุ่งเสร็จปุ๊บ ค่อยทำดาเมจใส่ศัตรู
         if (target != null)
         {
             EnemyBehavior enemyScript = target.GetComponent<EnemyBehavior>();
@@ -1014,7 +1045,16 @@ public class PlayerController : MonoBehaviour
 
         currentHealth -= damage;
         if (UIManager.Instance != null) UIManager.Instance.UpdateHealth(currentHealth, maxHealth);
-        if (currentHealth <= 0) Die();
+        
+        if (currentHealth <= 0) 
+        {
+            Die();
+        }
+        else if (!bypassInvincibility) 
+        {
+            // 🟢 [อุดบั๊ก!] ถ้ายังไม่ตาย ให้ติดสถานะอมตะชั่วคราว 1.5 วินาที
+            StartCoroutine(InvincibilityRoutine(1.5f));
+        }
     }
 
     public void Heal(int healAmount)
@@ -1115,10 +1155,9 @@ public class PlayerController : MonoBehaviour
     {
         if (isDead) return;
 
-        isKnockedBack = true;       // ทำให้ FixedUpdate ไม่มาแย่งคุมความเร็ว
-        knockbackTimer = duration;  // ระยะเวลาที่ขยับไม่ได้ (กำลังปลิว)
+        isKnockedBack = true;       
+        knockbackTimer = duration;  
         
-        // ปลดสถานะบล็อคหรือพุ่งออก
         isBlocking = false;
         isDashing = false;
         isTargetDashing = false;
@@ -1126,8 +1165,13 @@ public class PlayerController : MonoBehaviour
 
         if (rb != null)
         {
-            rb.linearVelocity = Vector2.zero; // หยุดความเร็วเดิมทั้งหมดก่อน
-            rb.AddForce(force, ForceMode2D.Impulse); // กระแทกให้ปลิว!
+            // 🟢 [อุดบั๊กปลิวทะลุโลก] ล้างความเร็วเดิมก่อน เพื่อไม่ให้แรงกระแทกมันบวกทบกัน!
+            rb.linearVelocity = Vector2.zero; 
+            
+            // 🟢 ต้องปลดเบรกมือที่ล็อคแกน X ไว้ออกชั่วคราวด้วย ไม่งั้นแรงกระแทกแนวนอนจะไม่ทำงาน
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation; 
+            
+            rb.AddForce(force, ForceMode2D.Impulse); 
         }
     }
     
@@ -1207,6 +1251,30 @@ public class PlayerController : MonoBehaviour
         
         // บังคับหยุดแอนิเมชันเดิน
         if (animator != null) animator.SetBool("isMoving", false);
+    }
+    
+    private IEnumerator InvincibilityRoutine(float duration)
+    {
+        isInvincible = true;
+        
+        float elapsed = 0f;
+        bool isVisible = true;
+        
+        // สลับเปิด-ปิดภาพผู้เล่นรัวๆ ให้ดูเหมือนกะพริบ (คล้ายๆ มาริโอ้)
+        while (elapsed < duration)
+        {
+            if (isDead) yield break; // ถ้าตายกลางคันให้หยุดทำงานทันที
+
+            isVisible = !isVisible;
+            if (spriteRenderer != null) spriteRenderer.enabled = isVisible;
+            
+            yield return new WaitForSeconds(0.1f); // กะพริบทุกๆ 0.1 วินาที
+            elapsed += 0.1f;
+        }
+        
+        // คืนสภาพกลับเป็นปกติ
+        if (spriteRenderer != null) spriteRenderer.enabled = true;
+        isInvincible = false;
     }
 
     //ฟังก์ชันสำหรับให้ร่างใหม่ ดึงสเตตัสจากร่างเก่าไปใช้

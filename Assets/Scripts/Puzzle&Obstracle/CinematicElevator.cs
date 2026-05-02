@@ -110,6 +110,26 @@ public class CinematicElevator : MonoBehaviour
         if (CharacterSwitcher.Instance != null) CharacterSwitcher.Instance.enabled = true;
         isMoving = false;
     }
+    
+    // 🟢 [ฟีเจอร์กันบั๊ก] ลิฟต์ทับคนตาย!
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        // ถ้าลิฟต์กำลังเลื่อนอยู่ แล้วไปทับโดนใครเข้า
+        if (isMoving)
+        {
+            if (collision.gameObject.CompareTag("Player"))
+            {
+                PlayerController pc = collision.gameObject.GetComponent<PlayerController>();
+                // สั่งทำดาเมจตายทันที (ทะลุ I-Frames ด้วย!)
+                if (pc != null) pc.TakeDamage(999, true); 
+            }
+            else if (collision.gameObject.CompareTag("Enemy"))
+            {
+                EnemyBehavior eb = collision.gameObject.GetComponent<EnemyBehavior>();
+                if (eb != null) eb.TakeDamage(999);
+            }
+        }
+    }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
