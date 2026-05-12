@@ -1109,10 +1109,10 @@ public class PlayerController : MonoBehaviour
             Rigidbody2D swordRb = droppedSword.GetComponent<Rigidbody2D>();
             if (swordRb != null)
             {
-                // สุ่มทิศทางและแรงกระเด็น (ให้เด้งสูงกว่าเลือดนิดหน่อยจะสวยมาก)
+                // สุ่มทิศทางและแรงกระเด็น
                 Vector2 popDir = new Vector2(Random.Range(-4f, 4f), Random.Range(5f, 8f));
                 swordRb.AddForce(popDir, ForceMode2D.Impulse);
-                swordRb.AddTorque(Random.Range(-600f, 600f)); // หมุนติ้วๆ
+                swordRb.AddTorque(Random.Range(-600f, 600f)); 
             }
         }
 
@@ -1257,24 +1257,24 @@ public class PlayerController : MonoBehaviour
     private IEnumerator InvincibilityRoutine(float duration)
     {
         isInvincible = true;
-        
-        float elapsed = 0f;
-        bool isVisible = true;
-        
-        // สลับเปิด-ปิดภาพผู้เล่นรัวๆ ให้ดูเหมือนกะพริบ (คล้ายๆ มาริโอ้)
-        while (elapsed < duration)
-        {
-            if (isDead) yield break; // ถ้าตายกลางคันให้หยุดทำงานทันที
 
-            isVisible = !isVisible;
-            if (spriteRenderer != null) spriteRenderer.enabled = isVisible;
-            
-            yield return new WaitForSeconds(0.1f); // กะพริบทุกๆ 0.1 วินาที
-            elapsed += 0.1f;
+        // 🟢 1. เปลี่ยนให้ตัวละครโปร่งใส (ปรับค่า Alpha เป็น 0.4)
+        if (spriteRenderer != null)
+        {
+            Color transparentColor = originalColor;
+            transparentColor.a = 0.4f; // 0.0 คือมองไม่เห็นเลย, 1.0 คือทึบแสง
+            spriteRenderer.color = transparentColor;
         }
-        
-        // คืนสภาพกลับเป็นปกติ
-        if (spriteRenderer != null) spriteRenderer.enabled = true;
+
+        // 🟢 2. รอเวลาจนหมดสถานะอมตะ (I-Frame)
+        yield return new WaitForSeconds(duration);
+
+        // 🟢 3. คืนร่างให้ทึบแสงเหมือนเดิม
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = originalColor;
+        }
+
         isInvincible = false;
     }
 

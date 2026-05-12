@@ -7,11 +7,14 @@ public class UIManager : MonoBehaviour
     public static UIManager Instance; 
 
     [Header("Health Bar UI (Image Filled)")]
-    public Image healthFill;      // 🟢 ลาก Image เลือดสีแดงมาใส่
-    public Image easeHealthFill;  // 🟢 ลาก Image เลือดสีขาว (ที่วิ่งตาม) มาใส่
-    public float lerpSpeed = 5f;  // ความเร็วในการไหลของหลอดเลือดตามหลัง
+    public Image healthFill;      
+    public Image easeHealthFill;  
+    public float lerpSpeed = 5f;  
+    
+    [Header("Health Bar Fader (🌟 ของใหม่!)")]
+    public HealthBarAutoFade healthBarFader; // 🟢 ลากก้อนแม่หลอดเลือดที่มีสคริปต์เฟดมาใส่
 
-    private float targetHealthPercent = 1f; // เก็บค่า % เลือดเป้าหมาย (0.0 ถึง 1.0)
+    private float targetHealthPercent = 1f; 
 
     [Header("Skill Cooldown UI")]
     public Image swordCooldownFill;  
@@ -30,24 +33,20 @@ public class UIManager : MonoBehaviour
     {
         if (gameOverPanel != null) gameOverPanel.HidePanel(); 
         
-        // หาตัว Player เพื่อเอามาดึงค่าคูลดาวน์
         GameObject pObj = GameObject.FindGameObjectWithTag("Player");
         if (pObj != null) player = pObj.GetComponent<PlayerController>();
     }
 
     void Update()
     {
-        // 🟢 1. ทำแอนิเมชันหลอดเลือดสีขาวค่อยๆ ลดตาม (Ease Health)
         if (easeHealthFill != null && healthFill != null)
         {
-            // ถ้าหลอดสียังไม่เท่ากัน ให้มันค่อยๆ ไหลไปหาเป้าหมาย
             if (easeHealthFill.fillAmount != targetHealthPercent)
             {
                 easeHealthFill.fillAmount = Mathf.Lerp(easeHealthFill.fillAmount, targetHealthPercent, lerpSpeed * Time.deltaTime);
             }
         }
 
-        // 🟢 2. อัปเดตคูลดาวน์ดาบแบบเรียลไทม์
         if (swordCooldownFill != null && player != null)
         {
             swordCooldownFill.fillAmount = PlayerController.isArmed ? 1f : player.GetSwordCooldownPercentage();
@@ -55,16 +54,19 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    // 🟢 อัปเกรด: รับค่า maxHealth มาคำนวณเปอร์เซ็นต์
     public void UpdateHealth(int currentHealth, int maxHealth)
     {
-        // คำนวณเลือดเป็นเปอร์เซ็นต์ (ต้องใส่ float ไม่งั้นหารกันจะได้ 0)
         targetHealthPercent = (float)currentHealth / maxHealth;
         
         if (healthFill != null)
         {
-            // หลอดแดง ลดฮวบทันที
             healthFill.fillAmount = targetHealthPercent;
+        }
+
+        // 🌟 สั่งให้หลอดเลือดเด้งสว่างขึ้นมา ทุกครั้งที่เลือดมีการเปลี่ยนแปลง!
+        if (healthBarFader != null)
+        {
+            healthBarFader.TriggerShow();
         }
     }
 
