@@ -456,6 +456,9 @@ public class PlayerController : MonoBehaviour
     private IEnumerator DashRoutine()
     {   
         AudioManager.Instance.PlaySFX(dashSound);
+        
+        if (CameraJuiceFX.Instance != null) CameraJuiceFX.Instance.TriggerDashJuice();
+        
         isDashing = true;
         canDash = false; 
         isInvincible = true; 

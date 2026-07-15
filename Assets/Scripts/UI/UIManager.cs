@@ -58,6 +58,12 @@ public class UIManager : MonoBehaviour
     {
         targetHealthPercent = (float)currentHealth / maxHealth;
         
+        if (CameraJuiceFX.Instance != null)
+        {
+            bool inDanger = targetHealthPercent <= 0.3f;
+            CameraJuiceFX.Instance.SetDangerState(inDanger);
+        }
+        
         if (healthFill != null)
         {
             healthFill.fillAmount = targetHealthPercent;
