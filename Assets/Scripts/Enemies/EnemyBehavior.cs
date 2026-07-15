@@ -75,6 +75,9 @@ public class EnemyBehavior : MonoBehaviour
     private float chatTimer = 0f;
     private EnemyBehavior chatPartner = null;
     private bool isAlerted = false;
+    
+    private bool isTriggeringCombatFX = false;
+    private float searchPlayerTimer = 0f;
 
     [Header("Combat Settings")]
     public GameObject projectilePrefab; 
@@ -191,9 +194,17 @@ public class EnemyBehavior : MonoBehaviour
     {
         if (player == null || !player.gameObject.activeInHierarchy)
         {
-            GameObject activePlayer = GameObject.FindGameObjectWithTag("Player");
-            if (activePlayer != null) player = activePlayer.transform;
-            else return; 
+            searchPlayerTimer -= Time.deltaTime;
+            if (searchPlayerTimer <= 0f)
+            {
+                GameObject activePlayer = GameObject.FindGameObjectWithTag("Player");
+                if (activePlayer != null) 
+                {
+                    player = activePlayer.transform;
+                }
+                searchPlayerTimer = 0.5f; // ถ้าหาไม่เจอ ให้รออีกครึ่งวินาทีค่อยหาใหม่ (ประหยัดสเปคสุดๆ)
+            }
+            return; // ยังไม่มีผู้เล่น ก็ให้มอนสเตอร์ยืนโง่ๆ ไปก่อน
         }
         
         if (isSwordStunned && type != EnemyType.BigChaser) return;
@@ -238,6 +249,11 @@ public class EnemyBehavior : MonoBehaviour
         if (distance <= detectionRange && HasLineOfSightToPlayer(distance))
         {
             // --- เจอผู้เล่นแล้ว ---
+            if (!isTriggeringCombatFX) // ถ้ายังไม่ได้เปิดเอฟเฟกต์
+            {
+                isTriggeringCombatFX = true;
+                if (CameraJuiceFX.Instance != null) CameraJuiceFX.Instance.SetCombatMode(true); 
+            }
             
             // 1. ถ้าไม่ใช่สายยืนนิ่งๆ และผู้เล่นเข้ามาใกล้เกินไป (เข้าระยะ Safe Distance)
             if (!isStationaryShooter && distance < (willStandGround ? safeDistance : safeDistance + 0.5f))
@@ -279,6 +295,11 @@ public class EnemyBehavior : MonoBehaviour
         else
         {
             // --- ไม่เจอผู้เล่น (อยู่นอกระยะสายตา) ---
+            if (isTriggeringCombatFX) // ถ้าเคยเปิดเอฟเฟกต์ไว้ ต้องปิดคืน
+            {
+                isTriggeringCombatFX = false;
+                if (CameraJuiceFX.Instance != null) CameraJuiceFX.Instance.SetCombatMode(false); 
+            }
             if (!isStationaryShooter)
             {
                 // ถ้าเป็นพลปืน ให้เดินลาดตระเวนเล่น
@@ -294,42 +315,46 @@ public class EnemyBehavior : MonoBehaviour
 
     // 🟢 ระบบอนิเมชันตอนยิงปืน
     // 🟢 ระบบอนิเมชันตอนยิงปืน (อัปเกรดป้องกันบั๊กลูป)
+    // 🟢 ระบบอนิเมชันตอนยิงปืน (อัปเกรดระดับ Pro: หันปืนตามเป้าหมาย & ยกเลิกถ้านอกระยะ)
     IEnumerator RangedShootRoutine()
     {
-        isRangedAiming = true;
+        isRangedAiming = true; // ล็อค State
         
         if (animator != null) 
         {
             animator.SetBool("isMoving", false);
-            
-            // 🟢 ท่าไม้ตาย: สั่งล้าง Trigger เก่าที่อาจจะค้างอยู่ออกให้หมดก่อน!
             animator.ResetTrigger("PrepareShoot");
             animator.ResetTrigger("Shoot");
         }
 
-        FlipSprite(player.position.x);
-        
-        // สั่งยกปืน
+        // 1. เริ่มง้างปืน
         if (animator != null) animator.SetTrigger("PrepareShoot");
         
-        // รอเวลาง้างปืน
-        yield return new WaitForSeconds(aimTime);
-
-        // เช็คเผื่อผู้เล่นตายหรือวาร์ปหายไปตอนง้างปืนพอดี
-        if (player == null || !player.gameObject.activeInHierarchy) 
+        // 2. ช่วงเวลาง้างปืน (Aiming Phase)
+        float elapsed = 0f;
+        while (elapsed < aimTime) 
         {
-            isRangedAiming = false;
-            yield break;
+            // 🔥 Failsafe: ถ้าผู้เล่นตาย, หายไป, หรือวิ่งหนีออกนอกระยะสายตาแล้ว ให้ยกเลิกการยิง!
+            if (player == null || !player.gameObject.activeInHierarchy || Vector2.Distance(transform.position, player.position) > detectionRange) 
+            {
+                // กลับไปยืนโหมดปกติ
+                if (animator != null) animator.SetTrigger("CancelShoot"); // ⚠️ อย่าลืมไปสร้าง Trigger นี้ใน Animator เพื่อกลับไปท่า Idle นะครับ
+                isRangedAiming = false; 
+                yield break; // หยุดคอรูทีนทันที!
+            }
+
+            // 🔥 Game Feel: หันหน้าตามผู้เล่นตลอดเวลาที่กำลังง้างปืน (โคตรกดดัน!)
+            FlipSprite(player.position.x); 
+
+            elapsed += Time.deltaTime;
+            yield return null;
         }
 
-        // หันหน้าอัปเดตเป้าหมายอีกรอบก่อนลั่นไก
-        FlipSprite(player.position.x);
-
-        // สั่งลั่นไกปืน
+        // 3. ลั่นไกยิง!
         if (animator != null) animator.SetTrigger("Shoot");
         Shoot(); // เสกกระสุนบินออกไป
 
-        // รอแอนิเมชันยิงปืน (ดีดกลับ) ค้างแปปนึงก่อนกลับไปเดิน
+        // 4. รอแอนิเมชันยิงปืน (จังหวะปืนดีดกลับ / Recoil)
         yield return new WaitForSeconds(0.2f);
 
         nextFireTime = Time.time + fireRate;
@@ -549,7 +574,13 @@ public class EnemyBehavior : MonoBehaviour
         }
 
         if (distance <= detectionRange && HasLineOfSightToPlayer(distance))
-        {
+        {   
+            if (!isTriggeringCombatFX) // ถ้ายังไม่ได้เปิดเอฟเฟกต์
+            {
+                isTriggeringCombatFX = true;
+                if (CameraJuiceFX.Instance != null) CameraJuiceFX.Instance.SetCombatMode(true); 
+            }
+            
             if (distance <= lungeRange && Time.time >= nextMeleeTime)
             {
                 if (animator != null) animator.SetBool("isMoving", false); 
@@ -566,7 +597,13 @@ public class EnemyBehavior : MonoBehaviour
             }
         }
         else 
-        {
+        {   
+            if (isTriggeringCombatFX) // ถ้าเคยเปิดเอฟเฟกต์ไว้ ต้องปิดคืน
+            {
+                isTriggeringCombatFX = false;
+                if (CameraJuiceFX.Instance != null) CameraJuiceFX.Instance.SetCombatMode(false); 
+            }
+            
             if (animator != null) animator.SetBool("isMoving", false); 
         }
     }
@@ -638,7 +675,13 @@ public class EnemyBehavior : MonoBehaviour
     void HandleFlyingHostile(float distance)
     {
         if (distance > detectionRange || !HasLineOfSightToPlayer(distance)) return;
-
+        
+        if (!isTriggeringCombatFX) // ถ้ายังไม่ได้เปิดเอฟเฟกต์
+        {
+            isTriggeringCombatFX = true;
+            if (CameraJuiceFX.Instance != null) CameraJuiceFX.Instance.SetCombatMode(true); 
+        }
+        
         if (!isPreparingToShoot)
         {
             float dirX = Mathf.Sign(transform.position.x - player.position.x); 
@@ -703,7 +746,17 @@ public class EnemyBehavior : MonoBehaviour
 
     void HandleBigChaser()
     {
-        if (isChasing) MoveTowardsPlayer(); 
+        if (isChasing) 
+        {
+            // 🟢 เปิดเอฟเฟกต์ตึงเครียดตอนบอสไล่กวด!
+            if (!isTriggeringCombatFX && CameraJuiceFX.Instance != null)
+            {
+                isTriggeringCombatFX = true;
+                CameraJuiceFX.Instance.SetCombatMode(true);
+            }
+        
+            MoveTowardsPlayer(); 
+        }
     }
 
     
@@ -932,6 +985,12 @@ public class EnemyBehavior : MonoBehaviour
 
     void Die()
     {   
+        if (isTriggeringCombatFX && CameraJuiceFX.Instance != null)
+        {
+            isTriggeringCombatFX = false;
+            CameraJuiceFX.Instance.SetCombatMode(false);
+        }
+        
         AudioManager.Instance.PlaySFX(deathSound, 1.2f);
         
         if (bloodPrefab != null)
@@ -1047,5 +1106,15 @@ public class EnemyBehavior : MonoBehaviour
         return hit.collider == null;
     }
     
+    private void OnDisable()
+    {
+        // 🟢 ถ้าศัตรูโดนปิดการทำงาน หรือถูกลบทิ้งไปกลางอากาศ 
+        // ต้องเคลียร์ค่าความเครียดในกล้องทิ้งทันที!
+        if (isTriggeringCombatFX && CameraJuiceFX.Instance != null)
+        {
+            isTriggeringCombatFX = false;
+            CameraJuiceFX.Instance.SetCombatMode(false);
+        }
+    }
     
 }
